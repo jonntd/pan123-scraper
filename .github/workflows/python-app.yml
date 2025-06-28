@@ -6,6 +6,11 @@ on:
       - 'v*'   # 仅在推送以 v 开头的标签时触发
   workflow_dispatch:  # 也允许手动触发
 
+# 设置权限以允许创建Release
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build_windows:
     runs-on: windows-latest
@@ -76,21 +81,72 @@ jobs:
   create_release:
     needs: [build_windows, build_linux, build_macos] # 确保所有构建作业完成后再创建Release
     runs-on: ubuntu-latest # 可以在任意一个平台上运行
+    if: startsWith(github.ref, 'refs/tags/') # 只在标签推送时创建Release
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts # 将所有下载的artifact放在这个目录
 
       - name: List downloaded artifacts (for debugging)
-        run: ls -R artifacts
+        run: |
+          echo "📦 下载的构建产物："
+          ls -la artifacts/
+          echo "📁 详细内容："
+          find artifacts/ -type f -exec ls -la {} \;
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release_files
+          # 复制并重命名文件以确保正确的文件名
+          if [ -f artifacts/pan123-scraper-windows/pan123-scraper-win.exe ]; then
+            cp artifacts/pan123-scraper-windows/pan123-scraper-win.exe release_files/
+            echo "✅ Windows可执行文件已准备"
+          fi
+          if [ -f artifacts/pan123-scraper-linux/pan123-scraper-linux ]; then
+            cp artifacts/pan123-scraper-linux/pan123-scraper-linux release_files/
+            echo "✅ Linux可执行文件已准备"
+          fi
+          if [ -f artifacts/pan123-scraper-macos/pan123-scraper-mac ]; then
+            cp artifacts/pan123-scraper-macos/pan123-scraper-mac release_files/
+            echo "✅ macOS可执行文件已准备"
+          fi
+          echo "📋 Release文件列表："
+          ls -la release_files/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/pan123-scraper-windows/*.exe
-            artifacts/pan123-scraper-linux/*
-            artifacts/pan123-scraper-macos/*
+          files: release_files/*
+          name: "pan23-scraper ${{ github.ref_name }}"
+          body: |
+            ## 🎉 pan23-scraper ${{ github.ref_name }}
+
+            ### 📦 下载
+            - **Windows**: pan123-scraper-win.exe
+            - **Linux**: pan123-scraper-linux
+            - **macOS**: pan123-scraper-mac
+
+            ### 🚀 使用方法
+            1. 下载对应平台的可执行文件
+            2. 创建 `config.json` 配置文件
+            3. 运行可执行文件
+            4. 访问 http://localhost:5001
+
+            ### ✨ 主要功能
+            - 🌐 123云盘文件管理
+            - 🤖 AI智能分组
+            - 🎬 TMDB媒体刮削
+            - 📝 批量重命名
+            - 🔒 安全配置管理
+
+            ### 📋 更新内容
+            请查看提交历史了解详细更新内容。
+          draft: false
+          prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
