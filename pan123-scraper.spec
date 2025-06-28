@@ -84,3 +84,21 @@ exe = EXE(
     entitlements_file=None,
     icon=None,  # 可以添加图标文件路径
 )
+
+# macOS特定配置
+if sys.platform == "darwin":
+    app = BUNDLE(
+        exe,
+        name='pan123-scraper.app',
+        icon=None,
+        bundle_identifier='com.pan123scraper.app',
+        info_plist={
+            'CFBundleName': 'pan123-scraper',
+            'CFBundleDisplayName': 'pan123-scraper',
+            'CFBundleVersion': '1.0.0',
+            'CFBundleShortVersionString': '1.0.0',
+            'CFBundleIdentifier': 'com.pan123scraper.app',
+            'NSHighResolutionCapable': True,
+            'LSUIElement': False,
+        },
+    )
