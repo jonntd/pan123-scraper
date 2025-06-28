@@ -6829,20 +6829,148 @@ def restart_app():
             time.sleep(1)
             print("Initiating new process...")
             try:
-                command = [sys.executable] + sys.argv
+                # 检测是否为打包环境
+                is_packaged = getattr(sys, 'frozen', False)
+
+                if is_packaged:
+                    # 打包环境：使用当前可执行文件路径
+                    if hasattr(sys, '_MEIPASS'):
+                        # PyInstaller打包环境
+                        executable_path = sys.executable
+                        # 尝试获取原始可执行文件路径
+                        if len(sys.argv) > 0 and os.path.exists(sys.argv[0]):
+                            executable_path = sys.argv[0]
+                        elif os.path.exists(os.path.join(os.path.dirname(sys.executable), 'pan123-scraper-mac')):
+                            executable_path = os.path.join(os.path.dirname(sys.executable), 'pan123-scraper-mac')
+                        elif os.path.exists(os.path.join(os.path.dirname(sys.executable), 'pan123-scraper-win.exe')):
+                            executable_path = os.path.join(os.path.dirname(sys.executable), 'pan123-scraper-win.exe')
+                        elif os.path.exists(os.path.join(os.path.dirname(sys.executable), 'pan123-scraper-linux')):
+                            executable_path = os.path.join(os.path.dirname(sys.executable), 'pan123-scraper-linux')
+
+                        command = [executable_path]
+                        print(f"打包环境重启命令: {command}")
+                    else:
+                        # 其他打包环境
+                        command = [sys.executable]
+                else:
+                    # 开发环境：使用Python解释器
+                    command = [sys.executable] + sys.argv
+                    print(f"开发环境重启命令: {command}")
+
+                # 启动新进程
                 subprocess.Popen(command,
                                 stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL)
+                                stderr=subprocess.DEVNULL,
+                                cwd=os.getcwd())
                 print("New process started. Exiting old process.")
+
+                # 延迟退出，确保响应发送完成
+                time.sleep(0.5)
                 os._exit(0)
+
             except Exception as e:
                 print(f"Failed to start new process: {e}")
+                logging.error(f"重启进程失败: {e}", exc_info=True)
+
+                # 备用重启方法：尝试使用shell命令
+                try:
+                    print("尝试备用重启方法...")
+                    if is_packaged:
+                        if sys.platform == "darwin":  # macOS
+                            os.system("nohup ./pan123-scraper-mac > /dev/null 2>&1 &")
+                        elif sys.platform == "win32":  # Windows
+                            os.system("start pan123-scraper-win.exe")
+                        else:  # Linux
+                            os.system("nohup ./pan123-scraper-linux > /dev/null 2>&1 &")
+                    else:
+                        # 开发环境
+                        os.system(f"nohup {sys.executable} {' '.join(sys.argv)} > /dev/null 2>&1 &")
+
+                    print("备用重启方法执行完成")
+                    time.sleep(0.5)
+                    os._exit(0)
+                except Exception as backup_e:
+                    print(f"备用重启方法也失败: {backup_e}")
+                    logging.error(f"备用重启方法失败: {backup_e}", exc_info=True)
 
         Thread(target=restart_process_async).start()
         return response
     except Exception as e:
         logging.error(f"重启应用程序失败: {e}", exc_info=True)
         return jsonify({'success': False, 'error': f'重启失败: {str(e)}'})
+
+@app.route('/restart_status', methods=['GET'])
+def restart_status():
+    """检查重启功能状态"""
+    try:
+        is_packaged = getattr(sys, 'frozen', False)
+
+        status = {
+            'restart_available': True,
+            'environment': 'packaged' if is_packaged else 'development',
+            'platform': sys.platform,
+            'executable_path': sys.executable,
+            'argv': sys.argv,
+            'working_directory': os.getcwd()
+        }
+
+        if is_packaged:
+            # 检查可执行文件是否存在
+            possible_executables = []
+            if sys.platform == "darwin":
+                possible_executables = [
+                    './pan123-scraper-mac',
+                    'pan123-scraper-mac',
+                    './dist/pan123-scraper-mac',
+                    'dist/pan123-scraper-mac',
+                    sys.executable  # 当前运行的可执行文件
+                ]
+            elif sys.platform == "win32":
+                possible_executables = [
+                    './pan123-scraper-win.exe',
+                    'pan123-scraper-win.exe',
+                    './dist/pan123-scraper-win.exe',
+                    'dist/pan123-scraper-win.exe',
+                    sys.executable
+                ]
+            else:
+                possible_executables = [
+                    './pan123-scraper-linux',
+                    'pan123-scraper-linux',
+                    './dist/pan123-scraper-linux',
+                    'dist/pan123-scraper-linux',
+                    sys.executable
+                ]
+
+            executable_found = False
+            for exe in possible_executables:
+                if os.path.exists(exe):
+                    status['detected_executable'] = os.path.abspath(exe)
+                    executable_found = True
+                    break
+
+            # 如果当前就是从可执行文件启动的，那么重启功能应该可用
+            if not executable_found and sys.executable and os.path.exists(sys.executable):
+                status['detected_executable'] = sys.executable
+                executable_found = True
+
+            if not executable_found:
+                status['restart_available'] = False
+                status['error'] = '未找到可执行文件'
+            else:
+                # 额外检查：确保检测到的可执行文件有执行权限
+                detected_exe = status.get('detected_executable')
+                if detected_exe and not os.access(detected_exe, os.X_OK):
+                    status['restart_available'] = False
+                    status['error'] = f'可执行文件缺少执行权限: {detected_exe}'
+
+        return jsonify(status)
+    except Exception as e:
+        logging.error(f"检查重启状态失败: {e}", exc_info=True)
+        return jsonify({
+            'restart_available': False,
+            'error': f'状态检查失败: {str(e)}'
+        })
 
 @app.route('/delete_empty_folders', methods=['POST'])
 def delete_empty_folders():

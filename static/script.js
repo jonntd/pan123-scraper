@@ -843,23 +843,120 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 重启应用按钮事件
     restartAppBtn.addEventListener('click', async () => {
+        // 首先检查重启功能状态
+        try {
+            const statusResponse = await fetch('/restart_status');
+            const statusData = await statusResponse.json();
+
+            if (!statusData.restart_available) {
+                showOperationResultModal(`
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        重启功能不可用: ${statusData.error || '未知原因'}
+                        <br><br>
+                        <strong>环境信息:</strong><br>
+                        - 运行环境: ${statusData.environment || '未知'}<br>
+                        - 平台: ${statusData.platform || '未知'}<br>
+                        <br>
+                        <strong>解决方案:</strong><br>
+                        请手动重启应用程序
+                    </div>
+                `);
+                return;
+            }
+        } catch (error) {
+            console.warn('无法检查重启状态:', error);
+        }
+
         if (confirm('确定要重启应用程序吗？这会中断当前操作。')) {
             try {
+                // 显示重启进度
+                showOperationResultModal(`
+                    <div class="alert alert-info">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        应用程序正在重启，请稍候...
+                        <br><br>
+                        <div class="progress" style="margin-top: 10px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 style="width: 100%"></div>
+                        </div>
+                    </div>
+                `);
+
                 const response = await fetch('/restart', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
+
                 const data = await response.json();
                 if (data.success) {
-                    showOperationResultModal('<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> 应用程序正在重启，请稍候...</div>');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 3000);
+                    // 等待重启完成并尝试重新连接
+                    let attempts = 0;
+                    const maxAttempts = 20;
+
+                    const checkConnection = async () => {
+                        attempts++;
+                        try {
+                            const testResponse = await fetch('/config', {
+                                method: 'GET',
+                                timeout: 2000
+                            });
+                            if (testResponse.ok) {
+                                showOperationResultModal(`
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-check-circle"></i>
+                                        应用程序重启成功！页面即将刷新...
+                                    </div>
+                                `);
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1000);
+                                return;
+                            }
+                        } catch (e) {
+                            // 连接失败，继续尝试
+                        }
+
+                        if (attempts < maxAttempts) {
+                            setTimeout(checkConnection, 1000);
+                        } else {
+                            showOperationResultModal(`
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    重启可能已完成，但无法自动检测。
+                                    <br><br>
+                                    请手动刷新页面或检查应用状态。
+                                    <br><br>
+                                    <button class="btn btn-primary" onclick="location.reload()">
+                                        <i class="fas fa-refresh"></i> 刷新页面
+                                    </button>
+                                </div>
+                            `);
+                        }
+                    };
+
+                    // 等待3秒后开始检查连接
+                    setTimeout(checkConnection, 3000);
+
                 } else {
-                    showOperationResultModal(`<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> 重启失败: ${data.error}</div>`);
+                    showOperationResultModal(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            重启失败: ${data.error}
+                            <br><br>
+                            请尝试手动重启应用程序。
+                        </div>
+                    `);
                 }
             } catch (error) {
-                showOperationResultModal(`<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> 请求重启失败: ${error.message}</div>`);
+                showOperationResultModal(`
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        请求重启失败: ${error.message}
+                        <br><br>
+                        请尝试手动重启应用程序。
+                    </div>
+                `);
             }
         }
     });
