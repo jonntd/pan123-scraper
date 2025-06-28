@@ -1,0 +1,113 @@
+name: Build and Release Multi-Platform App
+
+on:
+  push:
+    tags:
+      - 'v*'   # 仅在推送以 v 开头的标签时触发
+  workflow_dispatch:  # 也允许手动触发
+
+jobs:
+  build_windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # 根据你的实际需求设置
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          # 如果有其他依赖，写 requirements.txt 并用 pip install -r requirements.txt
+
+      - name: Build EXE with PyInstaller (Windows)
+        run: |
+          pyinstaller --onefile app.py --name pan123-scraper-win  
+
+      - name: Upload Windows EXE as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pan123-scraper-windows
+          path: dist/*.exe
+
+  build_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          # 如果有其他依赖，写 requirements.txt 并用 pip install -r requirements.txt
+
+      - name: Build Executable with PyInstaller (Linux)
+        run: |
+          pyinstaller --onefile app.py --name pan123-scraper-linux # 为输出文件命名
+
+      - name: Upload Linux Executable as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pan123-scraper-linux
+          path: dist/* # Linux可执行文件没有.exe后缀
+
+  build_macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          # 如果有其他依赖，写 requirements.txt 并用 pip install -r requirements.txt
+
+      - name: Build App with PyInstaller (macOS)
+        run: |
+          pyinstaller --onefile app.py --name pan123-scraper-mac # 为输出文件命名
+          # macOS通常打包为.app目录，如果需要，可以使用 --windowed 或 --noconsole 选项
+          # 如果使用 --onefile，通常会生成一个Unix可执行文件
+
+      - name: Upload macOS App/Executable as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pan123-scraper-macos
+          path: dist/* # macOS的产物可能是可执行文件或.app目录
+
+  create_release:
+    needs: [build_windows, build_linux, build_macos] # 确保所有构建作业完成后再创建Release
+    runs-on: ubuntu-latest # 可以在任意一个平台上运行
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts # 将所有下载的artifact放在这个目录
+
+      - name: List downloaded artifacts (for debugging)
+        run: ls -R artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/pan123-scraper-windows/*.exe
+            artifacts/pan123-scraper-linux/*
+            artifacts/pan123-scraper-macos/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
