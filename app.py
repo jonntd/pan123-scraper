@@ -7023,11 +7023,60 @@ def execute_selected_groups():
         logging.error(f"执行选中分组时发生错误: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)})
 
-if __name__ == '__main__':
+def find_available_port(start_port=5001, max_attempts=10):
+    """查找可用端口"""
+    import socket
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('localhost', port))
+                return port
+        except OSError:
+            continue
+    return None
+
+def start_flask_app():
+    """启动Flask应用，带错误处理"""
     logging.info("启动 Flask 应用程序。")
-    port = int(os.environ.get('PORT', 5001)) 
-    logging.info(f"🌐 启动服务器，端口: {port}")
-    app.run(debug=True, port=port, host='0.0.0.0')
+
+    # 获取端口配置
+    default_port = int(os.environ.get('PORT', 5001))
+
+    # 检查端口是否可用
+    available_port = find_available_port(default_port)
+    if available_port is None:
+        logging.error(f"❌ 无法找到可用端口（尝试范围：{default_port}-{default_port+9}）")
+        return
+
+    if available_port != default_port:
+        logging.warning(f"⚠️ 端口 {default_port} 被占用，使用端口 {available_port}")
+
+    logging.info(f"🌐 启动服务器，端口: {available_port}")
+
+    try:
+        # 检测是否为打包环境
+        import sys
+        is_packaged = getattr(sys, 'frozen', False)
+        debug_mode = not is_packaged  # 打包环境下禁用调试模式
+
+        if is_packaged:
+            logging.info("🎁 检测到打包环境，禁用调试模式")
+
+        app.run(debug=debug_mode, port=available_port, host='0.0.0.0', threaded=True)
+
+    except OSError as e:
+        if "Address already in use" in str(e):
+            logging.error(f"❌ 端口 {available_port} 被占用，尝试查找其他端口...")
+            # 递归尝试下一个端口
+            os.environ['PORT'] = str(available_port + 1)
+            start_flask_app()
+        else:
+            logging.error(f"❌ 启动服务器时发生错误: {e}")
+    except Exception as e:
+        logging.error(f"❌ 应用启动失败: {e}", exc_info=True)
+
+if __name__ == '__main__':
+    start_flask_app()
 
 
 

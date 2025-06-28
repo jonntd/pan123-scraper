@@ -22,11 +22,44 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
-          # 如果有其他依赖，写 requirements.txt 并用 pip install -r requirements.txt
+          pip install -r requirements.txt
+
+      - name: Create necessary directories
+        run: |
+          mkdir -p templates static
+          if [ ! -f "templates/index.html" ]; then
+            echo "Warning: templates/index.html not found, creating placeholder"
+            echo "<html><body><h1>pan123-scraper</h1></body></html>" > templates/index.html
+          fi
+          if [ ! -f "static/style.css" ]; then
+            echo "Warning: static/style.css not found, creating placeholder"
+            echo "/* pan123-scraper styles */" > static/style.css
+          fi
+          if [ ! -f "static/script.js" ]; then
+            echo "Warning: static/script.js not found, creating placeholder"
+            echo "// pan123-scraper scripts" > static/script.js
+          fi
+
+      - name: Verify spec file exists
+        run: |
+          if [ ! -f "pan123-scraper.spec" ]; then
+            echo "Error: pan123-scraper.spec not found!"
+            exit 1
+          fi
+          echo "✅ PyInstaller spec file found"
 
       - name: Build EXE with PyInstaller (Windows)
         run: |
-          pyinstaller --onefile app.py --name pan123-scraper-win  
+          pyinstaller pan123-scraper.spec
+
+      - name: Verify build output
+        run: |
+          ls -la dist/
+          if [ ! -f "dist/pan123-scraper-win.exe" ]; then
+            echo "Error: Windows executable not found!"
+            exit 1
+          fi
+          echo "✅ Windows executable built successfully"
 
       - name: Upload Windows EXE as artifact
         uses: actions/upload-artifact@v4
@@ -49,11 +82,44 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
-          # 如果有其他依赖，写 requirements.txt 并用 pip install -r requirements.txt
+          pip install -r requirements.txt
+
+      - name: Create necessary directories
+        run: |
+          mkdir -p templates static
+          if [ ! -f "templates/index.html" ]; then
+            echo "Warning: templates/index.html not found, creating placeholder"
+            echo "<html><body><h1>pan123-scraper</h1></body></html>" > templates/index.html
+          fi
+          if [ ! -f "static/style.css" ]; then
+            echo "Warning: static/style.css not found, creating placeholder"
+            echo "/* pan123-scraper styles */" > static/style.css
+          fi
+          if [ ! -f "static/script.js" ]; then
+            echo "Warning: static/script.js not found, creating placeholder"
+            echo "// pan123-scraper scripts" > static/script.js
+          fi
+
+      - name: Verify spec file exists
+        run: |
+          if [ ! -f "pan123-scraper.spec" ]; then
+            echo "Error: pan123-scraper.spec not found!"
+            exit 1
+          fi
+          echo "✅ PyInstaller spec file found"
 
       - name: Build Executable with PyInstaller (Linux)
         run: |
-          pyinstaller --onefile app.py --name pan123-scraper-linux # 为输出文件命名
+          pyinstaller pan123-scraper.spec
+
+      - name: Verify build output
+        run: |
+          ls -la dist/
+          if [ ! -f "dist/pan123-scraper-linux" ]; then
+            echo "Error: Linux executable not found!"
+            exit 1
+          fi
+          echo "✅ Linux executable built successfully"
 
       - name: Upload Linux Executable as artifact
         uses: actions/upload-artifact@v4
@@ -76,13 +142,44 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
-          # 如果有其他依赖，写 requirements.txt 并用 pip install -r requirements.txt
+          pip install -r requirements.txt
+
+      - name: Create necessary directories
+        run: |
+          mkdir -p templates static
+          if [ ! -f "templates/index.html" ]; then
+            echo "Warning: templates/index.html not found, creating placeholder"
+            echo "<html><body><h1>pan123-scraper</h1></body></html>" > templates/index.html
+          fi
+          if [ ! -f "static/style.css" ]; then
+            echo "Warning: static/style.css not found, creating placeholder"
+            echo "/* pan123-scraper styles */" > static/style.css
+          fi
+          if [ ! -f "static/script.js" ]; then
+            echo "Warning: static/script.js not found, creating placeholder"
+            echo "// pan123-scraper scripts" > static/script.js
+          fi
+
+      - name: Verify spec file exists
+        run: |
+          if [ ! -f "pan123-scraper.spec" ]; then
+            echo "Error: pan123-scraper.spec not found!"
+            exit 1
+          fi
+          echo "✅ PyInstaller spec file found"
 
       - name: Build App with PyInstaller (macOS)
         run: |
-          pyinstaller --onefile app.py --name pan123-scraper-mac # 为输出文件命名
-          # macOS通常打包为.app目录，如果需要，可以使用 --windowed 或 --noconsole 选项
-          # 如果使用 --onefile，通常会生成一个Unix可执行文件
+          pyinstaller pan123-scraper.spec
+
+      - name: Verify build output
+        run: |
+          ls -la dist/
+          if [ ! -f "dist/pan123-scraper-mac" ]; then
+            echo "Error: macOS executable not found!"
+            exit 1
+          fi
+          echo "✅ macOS executable built successfully"
 
       - name: Upload macOS App/Executable as artifact
         uses: actions/upload-artifact@v4
