@@ -6,3 +6,5 @@
 /.venv/
 /dist/
 /build/
+*.log.*
+/restart.log
