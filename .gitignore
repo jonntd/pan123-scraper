@@ -1,0 +1,6 @@
+/config.json
+/123_access_token.txt
+/.DS_Store
+/rename_log.log
+/__pycache__/
+/.venv/

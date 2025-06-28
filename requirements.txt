@@ -1,0 +1,30 @@
+# 123云盘刮削工具依赖包
+# =====================================
+
+# Web框架
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# HTTP请求库
+requests==2.31.0
+urllib3==2.1.0
+
+# JSON处理（Python内置，但列出版本要求）
+# json - 内置模块
+
+# 日志处理（Python内置）
+# logging - 内置模块
+
+# 并发处理（Python内置）
+# threading - 内置模块
+# concurrent.futures - 内置模块
+
+# 开发和测试依赖
+pytest==7.4.3
+pytest-flask==1.3.0
+pytest-cov==4.1.0
+flake8==6.1.0
+black==23.11.0
+
+# 可选：生产环境依赖
+gunicorn==21.2.0

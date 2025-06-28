@@ -1,0 +1,4581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>123云盘刮削工具</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* 🎨 统一设计系统 - 基于115.com品牌 */
+        :root {
+            /* 🎯 核心品牌色彩 - 115.com蓝色系统 */
+            --color-primary-50: #e6f7ff;
+            --color-primary-100: #bae7ff;
+            --color-primary-200: #91d5ff;
+            --color-primary-300: #69c0ff;
+            --color-primary-400: #40a9ff;
+            --color-primary-500: #1890ff;  /* 主品牌色 */
+            --color-primary-600: #096dd9;
+            --color-primary-700: #0050b3;
+            --color-primary-800: #003a8c;
+            --color-primary-900: #002766;
+
+            /* 🎨 语义色彩系统 */
+            --color-success-50: #f6ffed;
+            --color-success-500: #52c41a;
+            --color-success-600: #389e0d;
+            --color-warning-50: #fffbe6;
+            --color-warning-500: #faad14;
+            --color-warning-600: #d48806;
+            --color-error-50: #fff2f0;
+            --color-error-500: #ff4d4f;
+            --color-error-600: #cf1322;
+
+            /* 🌫️ 中性色彩系统 */
+            --color-gray-50: #fafafa;
+            --color-gray-100: #f5f5f5;
+            --color-gray-200: #f0f0f0;
+            --color-gray-300: #d9d9d9;
+            --color-gray-400: #bfbfbf;
+            --color-gray-500: #8c8c8c;
+            --color-gray-600: #595959;
+            --color-gray-700: #434343;
+            --color-gray-800: #262626;
+            --color-gray-900: #141414;
+
+            /* 📝 文本色彩映射 */
+            --color-text-primary: var(--color-gray-800);
+            --color-text-secondary: var(--color-gray-600);
+            --color-text-tertiary: var(--color-gray-500);
+            --color-text-disabled: var(--color-gray-400);
+            --color-text-inverse: #ffffff;
+
+            /* 🏠 背景色系统 */
+            --color-bg-page: var(--color-gray-50);
+            --color-bg-container: #ffffff;
+            --color-bg-elevated: #ffffff;
+            --color-bg-component: var(--color-gray-100);
+            --color-bg-hover: var(--color-gray-100);
+            --color-bg-active: var(--color-primary-50);
+            --color-bg-selected: var(--color-primary-100);
+
+            /* 🔲 边框系统 */
+            --color-border-light: var(--color-gray-200);
+            --color-border-base: var(--color-gray-300);
+            --color-border-strong: var(--color-gray-400);
+
+            /* 📐 紧凑间距系统 - 2px基准网格 */
+            --space-0: 0;
+            --space-1: 2px;
+            --space-2: 4px;
+            --space-3: 6px;
+            --space-4: 8px;
+            --space-5: 10px;
+            --space-6: 12px;
+            --space-8: 16px;
+            --space-10: 20px;
+            --space-12: 24px;
+            --space-16: 32px;
+            --space-20: 40px;
+            --space-24: 48px;
+
+            /* 📝 统一字体系统 */
+            --font-size-xs: 11px;
+            --font-size-sm: 12px;
+            --font-size-base: 14px;
+            --font-size-md: 16px;
+            --font-size-lg: 18px;
+            --font-size-xl: 20px;
+            --font-size-2xl: 24px;
+            --font-size-3xl: 30px;
+
+            /* 📏 行高系统 */
+            --line-height-none: 1;
+            --line-height-tight: 1.25;
+            --line-height-snug: 1.375;
+            --line-height-normal: 1.5;
+            --line-height-relaxed: 1.625;
+            --line-height-loose: 2;
+
+            /* 🔤 字重系统 */
+            --font-weight-light: 300;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
+
+            /* 🔘 圆角系统 */
+            --radius-none: 0;
+            --radius-sm: 2px;
+            --radius-base: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --radius-xl: 12px;
+            --radius-2xl: 16px;
+            --radius-full: 9999px;
+
+            /* 🌟 阴影系统 - 优化版 */
+            --shadow-none: none;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+            /* 📐 Z-index 层级管理 */
+            --z-base: 0;
+            --z-docked: 10;
+            --z-dropdown: 1000;
+            --z-sticky: 1020;
+            --z-fixed: 1030;
+            --z-modal-backdrop: 1040;
+            --z-modal: 1050;
+            --z-popover: 1060;
+            --z-tooltip: 1070;
+
+            /* 🎯 响应式断点 */
+            --breakpoint-sm: 640px;
+            --breakpoint-md: 768px;
+            --breakpoint-lg: 1024px;
+            --breakpoint-xl: 1280px;
+            --breakpoint-2xl: 1536px;
+
+            /* ⚡ 动画系统 */
+            --duration-fast: 150ms;
+            --duration-normal: 200ms;
+            --duration-slow: 300ms;
+            --duration-slower: 500ms;
+
+            --ease-out: cubic-bezier(0, 0, 0.2, 1);
+            --ease-in: cubic-bezier(0.4, 0, 1, 1);
+            --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        /* 🔄 现代CSS重置和基础样式 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            height: 100%;
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden; /* 防止水平滚动 */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); /* 渐变背景 */
+            color: var(--color-text-primary);
+            line-height: var(--line-height-normal);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-normal);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        /* 🎯 焦点管理 - 可访问性 */
+        :focus-visible {
+            outline: 2px solid var(--color-primary-500);
+            outline-offset: 2px;
+        }
+
+        /* 🖱️ 选择样式 */
+        ::selection {
+            background-color: var(--color-primary-100);
+            color: var(--color-primary-800);
+        }
+
+        /* 🏗️ 居中容器布局系统 */
+        .container-centered {
+            max-width: 1400px; /* 设置最大宽度 */
+            margin: 0 auto; /* 水平居中 */
+            padding: 16px; /* 添加内边距 */
+            height: 100vh; /* 固定高度为视口高度 */
+            max-height: 100vh; /* 最大高度限制 */
+            display: flex;
+            flex-direction: column;
+            background: #ffffff; /* 白色背景 */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* 添加阴影 */
+            overflow: hidden; /* 防止内容溢出 */
+        }
+
+        /* 主内容区域适配居中布局 - 无间隙 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0; /* 移除间隙，让文件列表区域完全填满 */
+            overflow: hidden;
+            min-height: 0;
+            height: calc(100vh - 32px); /* 减去容器内边距 */
+            max-height: calc(100vh - 32px); /* 最大高度限制 */
+        }
+
+        /* 居中布局响应式设计 */
+        @media (max-width: 1440px) {
+            .container-centered {
+                max-width: 1200px;
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .container-centered {
+                max-width: 100%;
+                margin: 0;
+                padding: 8px;
+                box-shadow: none; /* 移除阴影 */
+                height: 100vh; /* 确保高度不超过视口 */
+                max-height: 100vh;
+            }
+
+            .main-content {
+                height: calc(100vh - 16px); /* 减去容器内边距 */
+                max-height: calc(100vh - 16px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container-centered {
+                padding: 4px;
+                height: 100vh; /* 确保移动设备高度不超过视口 */
+                max-height: 100vh;
+            }
+
+            .main-content {
+                height: calc(100vh - 8px); /* 减去容器内边距 */
+                max-height: calc(100vh - 8px);
+            }
+        }
+
+        /* 📱 紧凑响应式容器 */
+        @media (min-width: 640px) {
+            .container-fluid {
+                padding: var(--space-2);
+                gap: var(--space-2);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container-fluid {
+                padding: var(--space-3);
+                gap: var(--space-2);
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .container-fluid {
+                padding: var(--space-4);
+                gap: var(--space-2);
+            }
+        }
+
+        .context-menu {
+            position: absolute;
+            background-color: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: var(--shadow-light);
+            z-index: 1000;
+            padding: 4px 0;
+            min-width: 120px;
+        }
+
+        .context-menu ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .context-menu ul li {
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.4;
+            transition: all 0.2s ease;
+        }
+
+        .context-menu ul li:hover {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        /* 115风格按钮 - 优化版 */
+        .btn-115 {
+            background: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            color: white;
+            border-radius: 3px;
+            padding: 6px 14px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            line-height: 1.4;
+        }
+
+        .btn-115:hover {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+            color: white;
+        }
+
+        .btn-115-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 3px;
+            padding: 6px 14px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            line-height: 1.4;
+        }
+
+        .btn-115-outline:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* 成功按钮样式 */
+        .btn-115-success {
+            background: var(--success-color);
+            border: 1px solid var(--success-color);
+            color: white;
+            border-radius: 3px;
+            padding: 6px 14px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            line-height: 1.4;
+        }
+
+        .btn-115-success:hover {
+            background: var(--success-hover);
+            border-color: var(--success-hover);
+            color: white;
+        }
+
+        /* 🔘 紧凑按钮组件系统 */
+        .btn, .ant-btn {
+            /* 布局 */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-1);
+
+            /* 紧凑尺寸 */
+            padding: var(--space-1) var(--space-2);
+            min-height: 24px;
+
+            /* 字体 */
+            font-family: inherit;
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            line-height: var(--line-height-none);
+
+            /* 外观 */
+            background: var(--color-bg-container);
+            border: 1px solid var(--color-border-base);
+            border-radius: var(--radius-base);
+            color: var(--color-text-primary);
+
+            /* 交互 */
+            cursor: pointer;
+            user-select: none;
+            text-decoration: none;
+            white-space: nowrap;
+
+            /* 动画 */
+            transition: all var(--duration-fast) var(--ease-out);
+
+            /* 状态管理 */
+            position: relative;
+            outline: none;
+            overflow: hidden;
+        }
+
+        /* 🎯 按钮状态系统 */
+        .btn:hover, .ant-btn:hover {
+            background: var(--color-bg-hover);
+            border-color: var(--color-primary-400);
+            color: var(--color-primary-600);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn:active, .ant-btn:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn:focus-visible, .ant-btn:focus-visible {
+            border-color: var(--color-primary-500);
+            box-shadow: 0 0 0 3px var(--color-primary-100);
+            z-index: var(--z-docked);
+        }
+
+        .btn:disabled, .ant-btn:disabled {
+            background: var(--color-bg-component);
+            border-color: var(--color-border-light);
+            color: var(--color-text-disabled);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.6;
+        }
+
+        /* 🎨 按钮变体系统 */
+
+        /* 主要按钮 */
+        .btn-primary, .ant-btn-primary {
+            background: var(--color-primary-500);
+            border-color: var(--color-primary-500);
+            color: var(--color-text-inverse);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .btn-primary:hover, .ant-btn-primary:hover {
+            background: var(--color-primary-600);
+            border-color: var(--color-primary-600);
+            color: var(--color-text-inverse);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active, .ant-btn-primary:active {
+            background: var(--color-primary-700);
+            border-color: var(--color-primary-700);
+        }
+
+        /* 成功按钮 */
+        .btn-success, .ant-btn-success {
+            background: var(--color-success-500);
+            border-color: var(--color-success-500);
+            color: var(--color-text-inverse);
+        }
+
+        .btn-success:hover, .ant-btn-success:hover {
+            background: var(--color-success-600);
+            border-color: var(--color-success-600);
+            color: var(--color-text-inverse);
+        }
+
+        /* 轮廓按钮 */
+        .btn-outline {
+            background: transparent;
+            border-color: var(--color-primary-500);
+            color: var(--color-primary-500);
+        }
+
+        .btn-outline:hover {
+            background: var(--color-primary-50);
+            border-color: var(--color-primary-600);
+            color: var(--color-primary-600);
+        }
+
+        /* 🔢 紧凑按钮尺寸系统 */
+
+        /* 超小按钮 */
+        .btn-xs {
+            padding: var(--space-1) var(--space-1);
+            min-height: 20px;
+            font-size: var(--font-size-xs);
+            border-radius: var(--radius-sm);
+            gap: var(--space-1);
+        }
+
+        /* 小按钮 */
+        .btn-sm {
+            padding: var(--space-1) var(--space-2);
+            min-height: 24px;
+            font-size: var(--font-size-xs);
+            border-radius: var(--radius-base);
+            gap: var(--space-1);
+        }
+
+        /* 中等按钮 (默认) */
+        .btn-md {
+            padding: var(--space-2) var(--space-3);
+            min-height: 28px;
+            font-size: var(--font-size-sm);
+        }
+
+        /* 大按钮 */
+        .btn-lg {
+            padding: var(--space-2) var(--space-4);
+            min-height: 32px;
+            font-size: var(--font-size-base);
+            border-radius: var(--radius-md);
+        }
+
+        /* 115风格卡片 - 扁平化版 */
+        .card-115 {
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .card-115-header {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-color);
+            padding: 6px 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            flex-shrink: 0;
+        }
+
+        .card-115-body {
+            padding: 8px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 115风格表格 - 紧凑版 */
+        .table-115 {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-white);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .table-115 thead th {
+            background-color: var(--secondary-color);
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 14px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .table-115 tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .table-115 tbody tr:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .table-115 tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* 🃏 紧凑卡片组件系统 */
+        .card, .ant-card {
+            background: var(--color-bg-container);
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius-base);
+            box-shadow: none;
+            margin-bottom: var(--space-1);
+            overflow: hidden;
+            transition: box-shadow var(--duration-normal) var(--ease-out);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        /* 卡片变体 */
+        .card-borderless {
+            border: none;
+            box-shadow: none;
+            background: transparent;
+        }
+
+        .card-elevated {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-interactive {
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+
+        .card-interactive:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        /* 📋 紧凑工具栏组件系统 */
+        .inline-toolbar {
+            background: var(--color-bg-component);
+            border-bottom: 1px solid var(--color-border-light);
+            padding: var(--space-1) var(--space-2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 28px;
+        }
+
+        .inline-toolbar .section-title {
+            margin: 0;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            line-height: var(--line-height-tight);
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .inline-toolbar .section-title i {
+            font-size: var(--font-size-sm);
+            color: var(--color-primary-500);
+            width: 14px;
+            text-align: center;
+        }
+
+        .inline-toolbar .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        /* 卡片内容区域 */
+        .card-body, .ant-card-body {
+            padding: 0;
+        }
+
+        .card-content {
+            padding: var(--space-4);
+        }
+
+        /* 紧凑卡片 */
+        .card-compact {
+            margin-bottom: var(--space-xs);
+        }
+
+        .card-compact .card-header {
+            padding: var(--space-sm) var(--space-md);
+            min-height: 36px;
+        }
+
+        .card-compact .card-header h3 {
+            font-size: var(--font-size-base);
+            font-weight: 500;
+        }
+
+        .card-compact .card-body {
+            padding: var(--space-md);
+        }
+
+        /* 📊 统一表格组件系统 */
+        .table, .ant-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--color-bg-container);
+            font-size: var(--font-size-base);
+            border-spacing: 0;
+        }
+
+        .table-wrapper, .ant-table-wrapper {
+            border: none;
+            border-radius: 0;
+            overflow: hidden;
+            box-shadow: none;
+            background: var(--color-bg-container);
+        }
+
+        /* 紧凑表头样式 */
+        .table thead th, .ant-table-thead > tr > th {
+            background: var(--color-bg-component);
+            color: var(--color-text-secondary);
+            font-weight: var(--font-weight-semibold);
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            padding: var(--space-1) var(--space-2);
+            border-bottom: 1px solid var(--color-border-base);
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: var(--z-docked);
+            white-space: nowrap;
+            user-select: none;
+            height: 24px;
+        }
+
+        /* 紧凑表格行样式 */
+        .table tbody td, .ant-table-tbody > tr > td {
+            padding: var(--space-1) var(--space-2);
+            border-bottom: 1px solid var(--color-border-light);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-primary);
+            line-height: var(--line-height-tight);
+            transition: background-color var(--duration-fast) var(--ease-out);
+            vertical-align: middle;
+            height: 28px;
+        }
+
+        /* 悬停效果 - 现代文件管理器风格 */
+        .table tbody tr:hover td, .ant-table-tbody > tr:hover > td {
+            background-color: var(--color-bg-hover);
+        }
+
+        /* 选中状态 */
+        .table tbody tr.selected td, .ant-table-tbody > tr.selected > td {
+            background-color: var(--color-bg-selected);
+            color: var(--color-primary-700);
+        }
+
+        .table tbody tr:last-child td, .ant-table-tbody > tr:last-child > td {
+            border-bottom: none;
+        }
+
+        /* 🗂️ 紧凑单元格样式系统 */
+
+        /* 文件类型图标 */
+        .table-cell-icon {
+            width: 24px;
+            text-align: center;
+            padding-left: var(--space-2);
+            padding-right: var(--space-1);
+        }
+
+        .table-cell-icon i {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-tertiary);
+        }
+
+        /* 文件名 */
+        .table-cell-filename {
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            max-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 文件大小 */
+        .table-cell-size {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            text-align: right;
+            width: 60px;
+            white-space: nowrap;
+        }
+
+        /* 复选框列 */
+        .table-cell-checkbox {
+            width: 32px;
+            text-align: center;
+            padding-left: var(--space-1);
+            padding-right: var(--space-2);
+        }
+
+        .table-cell-checkbox input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--color-primary-500);
+            cursor: pointer;
+        }
+
+        /* 紧凑表格 */
+        .table-compact thead th {
+            padding: var(--space-xs) var(--space-sm);
+            font-size: var(--font-size-xs);
+        }
+
+        .table-compact tbody td {
+            padding: var(--space-xs) var(--space-sm);
+            font-size: var(--font-size-xs);
+        }
+
+        /* 表格单元格类型 */
+        .table-cell-icon {
+            width: 32px;
+            text-align: center;
+            padding-left: var(--space-sm);
+            padding-right: var(--space-xs);
+        }
+
+        .table-cell-action {
+            width: 80px;
+            text-align: center;
+        }
+
+        .table-cell-checkbox {
+            width: 40px;
+            text-align: center;
+            padding-left: var(--space-sm);
+            padding-right: var(--space-xs);
+        }
+
+        /* 🏗️ 紧凑布局系统 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* 主要内容区域 - 文件列表 - 无间隙连接 */
+        .top-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 450px; /* 确保文件列表区域有足够的最小高度 */
+            margin: 0 !important; /* 强制移除所有外边距 */
+            padding: 0 !important; /* 强制移除所有内边距 */
+        }
+
+        /* 次要内容区域 - 日志 - 固定高度避免跳动 - 无间隙连接 - 30%高度 */
+        .bottom-section {
+            height: 220px; /* 使用固定像素高度，约30%的标准屏幕 */
+            min-height: 220px; /* 最小高度 */
+            max-height: 220px; /* 最大高度 */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            margin: 0 !important; /* 强制移除所有外边距 */
+            padding: 0 !important; /* 强制移除所有内边距 */
+        }
+
+        /* 🔧 统一分割条组件 */
+        .resize-handle {
+            height: 8px;
+            background: transparent;
+            cursor: row-resize;
+            transition: all var(--duration-normal) var(--ease-out);
+            flex-shrink: 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: var(--z-docked);
+        }
+
+        .resize-handle::before {
+            content: '';
+            width: 40px;
+            height: 2px;
+            background: var(--color-border-base);
+            border-radius: var(--radius-full);
+            transition: all var(--duration-normal) var(--ease-out);
+        }
+
+        .resize-handle:hover::before {
+            background: var(--color-primary-500);
+            width: 60px;
+            height: 3px;
+            box-shadow: 0 0 8px var(--color-primary-200);
+        }
+
+        .resize-handle::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            background: var(--color-bg-container);
+            border: 1px solid var(--color-border-base);
+            border-radius: var(--radius-full);
+            opacity: 0;
+            transition: all var(--duration-normal) var(--ease-out);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .resize-handle:hover::after {
+            opacity: 1;
+            border-color: var(--color-primary-500);
+            background: var(--color-primary-50);
+        }
+
+        /* 活动状态 */
+        .resize-handle:active::before {
+            background: var(--color-primary-600);
+            width: 80px;
+        }
+
+        .resize-handle:active::after {
+            background: var(--color-primary-100);
+            border-color: var(--color-primary-600);
+        }
+
+        /* 全屏自适应文件列表容器 */
+        .left-column .card-115 {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .left-column .card-115-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 8px;
+        }
+
+        #fileListContainer {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            min-height: 200px; /* 最小高度 */
+            max-height: 60vh; /* 防止超过视口高度的60% */
+            height: auto; /* 允许JavaScript动态设置高度 */
+            /* 115风格滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: #1890ff #f0f0f0;
+            transition: height 0.3s ease; /* 平滑的高度变化动画 */
+        }
+
+        #fileListContainer::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #fileListContainer::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        #fileListContainer::-webkit-scrollbar-thumb {
+            background: #1890ff;
+            border-radius: 4px;
+        }
+
+        #fileListContainer::-webkit-scrollbar-thumb:hover {
+            background: #40a9ff;
+        }
+
+        /* 📱 统一响应式断点系统 */
+
+        /* 超大屏幕 (1536px+) - 4K显示器优化 */
+        @media (min-width: 1536px) {
+            :root {
+                --font-size-base: 15px;
+                --font-size-sm: 13px;
+            }
+
+            .container-fluid {
+                padding: var(--space-6);
+                gap: var(--space-6);
+            }
+
+            .inline-toolbar {
+                padding: var(--space-4) var(--space-6);
+                min-height: 48px;
+            }
+
+            .table thead th, .table tbody td {
+                padding: var(--space-4) var(--space-6);
+            }
+        }
+
+        /* 大屏幕 (1280px - 1535px) - 标准桌面 */
+        @media (min-width: 1280px) and (max-width: 1535px) {
+            .container-fluid {
+                padding: var(--space-4);
+                gap: var(--space-4);
+            }
+
+            .bottom-section {
+                height: 28%;
+                min-height: 160px;
+            }
+        }
+
+        /* 中等屏幕 (1024px - 1279px) - 小桌面/大平板 */
+        @media (min-width: 1024px) and (max-width: 1279px) {
+            .container-fluid {
+                padding: var(--space-3);
+                gap: var(--space-3);
+            }
+
+            .bottom-section {
+                height: 30%;
+                min-height: 150px;
+            }
+
+            .btn {
+                padding: var(--space-1) var(--space-2);
+                font-size: var(--font-size-xs);
+            }
+        }
+
+        /* 平板设备 (768px - 1023px) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            :root {
+                --font-size-base: 15px;
+            }
+
+            .container-fluid {
+                padding: var(--space-3);
+                gap: var(--space-2);
+            }
+
+            .bottom-section {
+                height: 200px; /* 平板设备使用固定高度 */
+                min-height: 200px; /* 最小高度 */
+                max-height: 200px; /* 最大高度 */
+            }
+
+            .inline-toolbar {
+                padding: var(--space-2) var(--space-3);
+            }
+
+            .btn {
+                min-height: 36px;
+                padding: var(--space-2) var(--space-3);
+            }
+
+            /* 平板设备fileListContainer高度优化 */
+            #fileListContainer {
+                min-height: 180px; /* 平板设备最小高度 */
+                max-height: 65vh; /* 平板设备最大高度 */
+                transition: height 0.25s ease; /* 中等速度动画 */
+            }
+        }
+
+        /* 📱 移动设备优化 (最大768px) - 触摸友好设计 */
+        @media (max-width: 768px) {
+            :root {
+                --font-size-base: 16px;  /* 移动端增大字体 */
+                --font-size-sm: 14px;
+                --font-size-xs: 12px;
+            }
+
+            .container-fluid {
+                padding: var(--space-1);
+                gap: 0 !important; /* 移动端强制无间隙 */
+            }
+
+            .main-content {
+                gap: 0 !important; /* 移动端也强制无间隙 */
+            }
+
+            .bottom-section {
+                height: 180px; /* 移动设备使用固定高度 */
+                min-height: 180px; /* 最小高度 */
+                max-height: 180px; /* 最大高度 */
+            }
+
+            /* 移动端按钮 - 44px最小触摸目标 */
+            .btn, .ant-btn {
+                min-height: 44px;
+                padding: var(--space-3) var(--space-4);
+                font-size: var(--font-size-base);
+                border-radius: var(--radius-lg);
+                gap: var(--space-2);
+            }
+
+            .btn-sm {
+                min-height: 36px;
+                padding: var(--space-2) var(--space-3);
+                font-size: var(--font-size-sm);
+            }
+
+            /* 移动端工具栏 */
+            .inline-toolbar {
+                padding: var(--space-2) var(--space-3);
+                min-height: 48px;
+                flex-wrap: wrap;
+                gap: var(--space-2);
+            }
+
+            .inline-toolbar .section-title {
+                font-size: var(--font-size-md);
+                font-weight: var(--font-weight-semibold);
+            }
+
+            .inline-toolbar .toolbar-actions {
+                flex-wrap: wrap;
+                gap: var(--space-2);
+            }
+
+            /* 移动端表格优化 */
+            .table thead th {
+                padding: var(--space-2);
+                font-size: var(--font-size-xs);
+                font-weight: var(--font-weight-semibold);
+            }
+
+            .table tbody td {
+                padding: var(--space-2);
+                font-size: var(--font-size-base);
+                line-height: var(--line-height-snug);
+            }
+
+            /* 隐藏不重要的列 */
+            .table-cell-size {
+                display: none;
+            }
+
+            /* 移动端分割条 */
+            .resize-handle {
+                height: 12px;
+            }
+
+            .resize-handle::before {
+                width: 60px;
+                height: 4px;
+            }
+
+            .resize-handle:hover::before {
+                width: 80px;
+                height: 5px;
+            }
+
+            /* 移动端复选框优化 */
+            .table-cell-checkbox input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+            }
+
+            /* 移动端fileListContainer高度优化 */
+            #fileListContainer {
+                min-height: 150px; /* 移动端最小高度 */
+                max-height: 70vh; /* 移动端最大高度 */
+                transition: height 0.2s ease; /* 更快的动画 */
+            }
+
+            /* 移动端section间隙修复 */
+            .top-section,
+            .bottom-section {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .top-section .card-borderless,
+            .bottom-section .card-borderless {
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+        }
+
+        /* 小屏设备 (320px - 375px) */
+        @media (max-width: 375px) {
+            .container-fluid {
+                padding: var(--space-xs);
+                gap: 0 !important; /* 小屏设备也强制无间隙 */
+            }
+
+            .top-section {
+                height: 35%;
+                min-height: 160px;
+            }
+
+            .card-header, .ant-card-head {
+                padding: var(--space-sm);
+                min-height: 40px;
+            }
+
+            .card-body, .ant-card-body {
+                padding: var(--space-sm);
+            }
+
+            .btn, .ant-btn {
+                min-height: 40px;
+                padding: var(--space-sm) var(--space-md);
+                font-size: var(--font-size-sm);
+            }
+
+            /* 小屏设备fileListContainer高度优化 */
+            #fileListContainer {
+                min-height: 120px; /* 小屏设备最小高度 */
+                max-height: 75vh; /* 小屏设备最大高度 */
+                transition: height 0.15s ease; /* 快速动画 */
+            }
+
+            /* 小屏设备section间隙修复 */
+            .top-section,
+            .bottom-section {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .top-section .card-borderless,
+            .bottom-section .card-borderless {
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+        }
+
+        .episode-row {
+            background-color: #fffbe6 !important;
+            border-left: 4px solid #faad14;
+        }
+
+        .episode-row td {
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.85);
+        }
+
+        /* 115风格标题 - 优化版 */
+        .app-title-115 {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .section-title-115 {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .subsection-title-115 {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        /* 115风格表单 */
+        .form-115 {
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .form-control-115 {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            font-size: 13px;
+            color: var(--text-primary);
+            background: var(--bg-white);
+            transition: border-color 0.2s ease;
+        }
+
+        .form-control-115:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .form-label-115 {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* 全屏自适应右栏组件 */
+        .right-column .card-115:first-child {
+            flex: 0 0 30%;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-column .card-115:nth-child(2) {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-column .card-115:last-child {
+            flex: 0 0 25%;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-column .card-115-body {
+            flex: 1;
+            overflow: hidden;
+            padding: 8px;
+        }
+
+        /* 115风格日志容器 - 全屏自适应版，支持水平滚动 */
+        .log-container-115 {
+            background: #001529;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            height: 100%;
+            max-height: 500px;
+            overflow: auto;
+            padding: 8px;
+            /* 115风格滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: #1890ff #f0f0f0;
+        }
+
+        .log-container-115::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .log-container-115::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .log-container-115::-webkit-scrollbar-thumb {
+            background: #1890ff;
+            border-radius: 4px;
+        }
+
+        .log-container-115::-webkit-scrollbar-thumb:hover {
+            background: #40a9ff;
+        }
+
+        .log-container-115::-webkit-scrollbar-corner {
+            background: #f0f0f0;
+        }
+
+        .log-display-115 {
+            font-size: 13px;
+            line-height: 1.4;
+            background: #001529;
+            margin: 0;
+            color: #fff;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            white-space: pre;
+            word-wrap: normal;
+            overflow-x: auto;
+        }
+
+        /* 刮削预览表格优化 - 无 min-height 约束的健壮布局 */
+        #scrapePreviewContainer {
+            flex: 1;
+            display: grid !important;
+            grid-template-rows: auto 1fr auto;
+            gap: 8px;
+            height: auto;
+            overflow: visible;
+            contain: layout;
+        }
+
+        /* 刮削预览状态区域优化 */
+        #scrapePreviewStatus {
+            margin-bottom: 8px !important;
+            padding: 4px 8px;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+
+        #scrapePreviewContainer .preview-info {
+            grid-row: 1;
+            padding: 4px 8px;
+            background: var(--secondary-color);
+            border-radius: 3px;
+            font-size: 14px;
+            line-height: 1.2;
+            color: var(--text-secondary);
+        }
+
+        #scrapePreviewContainer .table-container {
+            grid-row: 2;
+            overflow: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-white);
+            flex-basis: 200px;
+            height: auto;
+            position: relative;
+            /* 确保滚动条显示 */
+            overflow-x: auto;
+            overflow-y: auto;
+            /* 115风格滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: #1890ff #f0f0f0;
+        }
+
+        #scrapePreviewContainer .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        #scrapePreviewContainer .table-container::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        #scrapePreviewContainer .table-container::-webkit-scrollbar-thumb {
+            background: #1890ff;
+            border-radius: 4px;
+        }
+
+        #scrapePreviewContainer .table-container::-webkit-scrollbar-thumb:hover {
+            background: #40a9ff;
+        }
+
+        #previewTable {
+            width: 100%;
+            min-width: 800px; /* 确保表格有最小宽度，触发水平滚动 */
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 13px;
+            background: var(--bg-white);
+        }
+
+        #previewTable thead {
+            background: #fafafa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        #previewTable thead th {
+            padding: 8px 6px;
+            border-bottom: 2px solid var(--border-color);
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--text-primary);
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background: #fafafa;
+        }
+
+        #previewTable tbody td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.3;
+            vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        #previewTable tbody tr:hover {
+            background-color: #e6f7ff;
+        }
+
+        /* 优化的列宽设置 - 确保表格对齐 */
+        #previewTable th:nth-child(1),
+        #previewTable td:nth-child(1) {
+            width: 50px;
+            min-width: 50px;
+            max-width: 50px;
+            text-align: center;
+        }
+
+        #previewTable th:nth-child(2),
+        #previewTable td:nth-child(2) {
+            width: 28%;
+            min-width: 220px;
+        }
+
+        #previewTable th:nth-child(3),
+        #previewTable td:nth-child(3) {
+            width: 28%;
+            min-width: 220px;
+        }
+
+        #previewTable th:nth-child(4),
+        #previewTable td:nth-child(4) {
+            width: 70px;
+            min-width: 70px;
+            max-width: 70px;
+            text-align: center;
+        }
+
+        #previewTable th:nth-child(5),
+        #previewTable td:nth-child(5) {
+            width: 25%;
+            min-width: 160px;
+        }
+
+        #previewTable th:nth-child(6),
+        #previewTable td:nth-child(6) {
+            width: 70px;
+            min-width: 70px;
+            max-width: 70px;
+            text-align: center;
+        }
+
+        /* TMDB信息样式优化 */
+        .tmdb-info {
+            font-size: 12px;
+            line-height: 1.3;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .tmdb-title {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tmdb-details {
+            color: var(--text-secondary);
+            font-size: 11px;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tmdb-id {
+            color: var(--primary-color);
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            font-weight: 500;
+        }
+
+        /* 文件名样式优化 */
+        .filename-cell {
+            font-size: 12px;
+            line-height: 1.3;
+            word-break: break-all;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .filename-original {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .filename-suggested {
+            color: var(--primary-color);
+            font-weight: 500;
+            display: block;
+        }
+
+        /* 状态标签样式优化 */
+        .status-badge {
+            display: inline-block;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: 500;
+            text-align: center;
+            white-space: nowrap;
+            line-height: 1.2;
+        }
+
+        .status-success {
+            background: #f6ffed;
+            color: #52c41a;
+            border: 1px solid #b7eb8f;
+        }
+
+        .status-warning {
+            background: #fffbe6;
+            color: #faad14;
+            border: 1px solid #ffe58f;
+        }
+
+        .status-error {
+            background: #fff2f0;
+            color: #ff4d4f;
+            border: 1px solid #ffccc7;
+        }
+
+        .card-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .mb-3 {
+            margin-bottom: 0.75rem !important;
+        }
+
+        /* 115风格导航 - 紧凑版 */
+        .nav-115 {
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breadcrumb-115 {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            font-size: 12px;
+            color: var(--text-secondary);
+            overflow: hidden;
+        }
+
+        .breadcrumb-115 a {
+            color: var(--primary-color);
+            text-decoration: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .breadcrumb-115 a:hover {
+            background-color: var(--secondary-color);
+            text-decoration: none;
+        }
+
+        .breadcrumb-115 .separator {
+            margin: 0 3px;
+            color: var(--text-muted);
+        }
+
+        /* 115风格工具栏 - 全屏紧凑版 */
+        .toolbar-115 {
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        /* 刮削预览容器内的工具栏特殊样式 - 无 min-height 约束 */
+        #scrapePreviewContainer .toolbar-115 {
+            grid-row: 3;
+            margin-bottom: 0;
+            border-top: 1px solid var(--border-color);
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            z-index: 20;
+            background: var(--bg-white);
+            position: relative;
+            height: auto;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 8px 12px;
+        }
+
+        /* 确保应用重命名按钮始终可见和可访问 */
+        #applyRenameBtn {
+            width: auto;
+            white-space: nowrap;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 25;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            height: auto;
+        }
+
+        /* 确保容器在显示时使用正确的布局 */
+        #scrapePreviewContainer[style*="display: block"],
+        #scrapePreviewContainer[style*="display: grid"] {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        /* 强制确保 Grid 布局生效 - 修复版 */
+        #scrapePreviewContainer:not([style*="display: none"]) {
+            display: grid !important;
+            grid-template-rows: auto 1fr auto !important;
+            grid-template-areas:
+                "header"
+                "content"
+                "footer";
+        }
+
+        /* 确保各区域正确定位 */
+        #scrapePreviewContainer .preview-info {
+            grid-area: header;
+        }
+
+        #scrapePreviewContainer .table-container {
+            grid-area: content;
+        }
+
+        #scrapePreviewContainer .toolbar-115 {
+            grid-area: footer;
+        }
+
+        /* 备用布局：如果 Grid 不工作，使用 Flexbox - 增强版 */
+        @supports not (display: grid) {
+            #scrapePreviewContainer {
+                display: flex !important;
+                flex-direction: column;
+                height: auto;
+                overflow: visible;
+            }
+
+            #scrapePreviewContainer .preview-info {
+                flex-shrink: 0;
+                order: 1;
+            }
+
+            #scrapePreviewContainer .table-container {
+                flex: 1;
+                flex-basis: 200px;
+                height: auto;
+                order: 2;
+            }
+
+            #scrapePreviewContainer .toolbar-115 {
+                flex-shrink: 0;
+                order: 3;
+                position: relative;
+                z-index: 30;
+            }
+        }
+
+        /* 紧急修复：强制工具栏可见性 */
+        #scrapePreviewContainer .toolbar-115 {
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+
+        /* 调试模式：高亮工具栏区域 */
+        #scrapePreviewContainer.debug .toolbar-115 {
+            background: #ffeb3b !important;
+            border: 2px solid #ff5722 !important;
+        }
+
+        /* 容器溢出修复 */
+        .card-115-body {
+            overflow: visible;
+            contain: none;
+        }
+
+        /* 父容器修复 */
+        .right-column .card-115:nth-child(2) {
+            overflow: visible;
+            contain: layout;
+        }
+
+        /* 调试样式：高亮显示工具栏区域 */
+        #scrapePreviewContainer .toolbar-115:hover {
+            background: #f0f8ff !important;
+            border-color: var(--primary-color) !important;
+        }
+
+        /* 确保按钮在所有情况下都可见和可交互 */
+        #applyRenameBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: auto;
+        }
+
+        #applyRenameBtn:not(:disabled) {
+            opacity: 1;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        /* 视口修复：确保元素不会被推出可视区域 */
+        @media (max-height: 600px) {
+            #scrapePreviewContainer {
+                max-height: 80vh;
+            }
+
+            #scrapePreviewContainer .table-container {
+                max-height: 40vh;
+                flex-basis: 100px;
+            }
+        }
+
+        /* 面包屑导航样式 */
+        .top-file-path {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            min-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .file-path {
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            white-space: nowrap;
+            /* 115风格滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: #1890ff #f0f0f0;
+        }
+
+        .file-path::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .file-path::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+
+        .file-path::-webkit-scrollbar-thumb {
+            background: #1890ff;
+            border-radius: 3px;
+        }
+
+        .file-path::-webkit-scrollbar-thumb:hover {
+            background: #40a9ff;
+        }
+
+        .file-path a.folder {
+            color: #1890ff;
+            text-decoration: none;
+            padding: 2px 4px;
+            border-radius: 2px;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .file-path a.folder:hover {
+            background-color: #e6f7ff;
+            text-decoration: none;
+        }
+
+        .file-path i[btn="arrow_btn"] {
+            margin: 0 4px;
+            color: #8c8c8c;
+            font-style: normal;
+            flex-shrink: 0;
+        }
+
+        .icon-home::before {
+            content: "🏠";
+            margin-right: 2px;
+        }
+
+        /* 右键菜单样式 */
+        .context-menu {
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #d9d9d9;
+            border-radius: 2px;
+            z-index: 1000;
+            padding: 4px 0;
+            min-width: 120px;
+        }
+
+        .context-menu ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .context-menu ul li {
+            padding: 7px 12px;
+            cursor: pointer;
+            color: rgba(0, 0, 0, 0.85);
+            font-size: 14px;
+            line-height: 1.5715;
+        }
+
+        .context-menu ul li:hover {
+            background-color: #e6f7ff; /* Ant Design primary-1 */
+            color: #1890ff; /* Ant Design primary-color */
+        }
+
+        /* 配置说明样式 */
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+
+        .alert-info {
+            color: #31708f;
+            background-color: #d9edf7;
+            border-color: #bce8f1;
+        }
+
+        .alert-heading {
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-text {
+            margin-top: 5px;
+            font-size: 0.875em;
+            color: #6c757d;
+            line-height: 1.4;
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .mb-3 {
+            margin-bottom: 1rem;
+        }
+
+        /* 配置分组标题样式 */
+        .modal-body h5 {
+            color: #495057;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-body hr {
+            border-top: 1px solid #dee2e6;
+            margin: 1.5rem 0;
+        }
+
+        .my-4 {
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* 优化表格样式 - 增大字体 */
+        .table th,
+        .table td {
+            padding: 0.6rem;
+            font-size: 1rem;
+        }
+
+        .table thead th {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        /* 优化按钮样式 - 增大字体 */
+        .btn {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        /* 优化表单样式 - 增大字体 */
+        .form-control {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+        }
+
+        .form-label {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* 紧凑导航样式 */
+        .folder-navigation {
+            margin-bottom: 0.75rem;
+        }
+
+        /* 紧凑模态框样式 */
+        .modal-body h5 {
+            font-size: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .modal-body hr {
+            margin: 1rem 0;
+        }
+
+        /* 紧凑卡片样式 */
+        .card {
+            margin-bottom: 0.75rem !important;
+        }
+
+        .header-container {
+            margin-bottom: 0.5rem !important;
+        }
+
+        /* 紧凑容器样式 */
+        .container {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        /* 超紧凑文件列表区域 */
+        .file-list-section {
+            margin-bottom: 0.5rem !important;
+        }
+
+        .file-list-section .card-header {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.9rem !important;
+            font-weight: 600;
+        }
+
+        .file-list-section .card-body {
+            padding: 0.5rem 0.75rem !important;
+        }
+
+        /* 紧凑导航区域 */
+        .navigation-section {
+            margin-bottom: 0.5rem !important;
+        }
+
+        .navigation-section .btn {
+            padding: 0.25rem 0.5rem !important;
+            font-size: 0.8rem !important;
+            margin-right: 0.25rem;
+        }
+
+        .folder-navigation {
+            margin-bottom: 0.5rem !important;
+            font-size: 0.85rem;
+        }
+
+        .folder-navigation a {
+            padding: 0.1rem 0.3rem;
+            margin: 0 0.1rem;
+        }
+
+        /* 紧凑表单区域 */
+        .form-section {
+            margin-bottom: 0.5rem !important;
+        }
+
+        .form-section .card-header {
+            padding: 0.4rem 0.75rem !important;
+            font-size: 0.85rem !important;
+        }
+
+        .form-section .card-body {
+            padding: 0.5rem 0.75rem !important;
+        }
+
+        .form-section .form-control {
+            padding: 0.25rem 0.5rem !important;
+            font-size: 0.8rem !important;
+        }
+
+        .form-section .btn {
+            padding: 0.25rem 0.75rem !important;
+            font-size: 0.8rem !important;
+        }
+
+        /* 紧凑日志容器 */
+        .log-container {
+            max-height: 400px;
+            overflow-y: auto;
+            /* 115风格滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: #1890ff #f0f0f0;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: #1890ff;
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: #40a9ff;
+        }
+
+        .log-display {
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
+
+        /* 文件列表内容区域 */
+        .file-list-content {
+            margin-top: 0.5rem !important;
+        }
+
+        .file-list-content h3 {
+            font-size: 0.95rem !important;
+            margin-bottom: 0.5rem !important;
+            font-weight: 600;
+        }
+
+        /* 导航按钮组 */
+        .navigation-section {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem !important;
+        }
+
+        .navigation-section .btn {
+            padding: 0.25rem 0.6rem !important;
+            font-size: 0.8rem !important;
+        }
+
+        .navigation-section .folder-navigation {
+            flex: 1;
+            min-width: 200px;
+            margin: 0 !important;
+        }
+
+        /* 紧凑头部布局 */
+        .compact-header {
+            padding: 0.5rem 0.75rem !important;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .header-title {
+            font-size: 1rem !important;
+            margin: 0 !important;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .header-row .btn-sm {
+            padding: 0.25rem 0.5rem !important;
+            font-size: 0.8rem !important;
+            white-space: nowrap;
+        }
+
+        .header-row .folder-navigation {
+            flex: 1;
+            min-width: 150px;
+            font-size: 0.85rem;
+        }
+
+        /* 路径导航行 */
+        .path-row {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .path-row .folder-navigation {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        .path-row .folder-navigation a {
+            color: #1890ff;
+            text-decoration: none;
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .path-row .folder-navigation a:hover {
+            background-color: #e6f7ff;
+            color: #0056b3;
+        }
+
+        /* 智能文件分组样式 - 增强版 */
+        .groups-container {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            max-height: 500px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            /* 115风格滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: #1890ff #f0f0f0;
+        }
+
+        /* 增强的分组容器 - 占用90%空间，防止遮挡 */
+        .groups-container-enhanced {
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: var(--color-bg-container);
+            padding: var(--space-2);
+            box-sizing: border-box;
+            position: relative;
+            /* 现代滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-primary-300) var(--color-gray-100);
+        }
+
+        .groups-container-enhanced::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .groups-container-enhanced::-webkit-scrollbar-track {
+            background: var(--color-gray-100);
+            border-radius: var(--radius-base);
+        }
+
+        .groups-container-enhanced::-webkit-scrollbar-thumb {
+            background: var(--color-primary-300);
+            border-radius: var(--radius-base);
+            transition: background var(--duration-fast) var(--ease-out);
+        }
+
+        .groups-container-enhanced::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary-500);
+        }
+
+        /* 保持原有样式兼容性 */
+        .groups-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .groups-container::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .groups-container::-webkit-scrollbar-thumb {
+            background: #1890ff;
+            border-radius: 4px;
+        }
+
+        .groups-container::-webkit-scrollbar-thumb:hover {
+            background: #40a9ff;
+        }
+
+        /* 通用 table-responsive 容器滚动条样式 */
+        .table-responsive {
+            /* 115风格滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: #1890ff #f0f0f0;
+        }
+
+        .table-responsive::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #1890ff;
+            border-radius: 4px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #40a9ff;
+        }
+
+        /* 浮动日志窗口样式 */
+        .floating-log-window {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            width: 400px;
+            height: 500px;
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            resize: both;
+            overflow: hidden;
+            min-width: 300px;
+            min-height: 200px;
+        }
+
+        .floating-log-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            flex-shrink: 0;
+        }
+
+        .floating-log-title {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .floating-log-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .floating-log-controls .btn {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 4px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .floating-log-controls .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .floating-log-separator {
+            width: 1px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0 4px;
+        }
+
+        .floating-log-content {
+            flex: 1;
+            background: #001529;
+            padding: 8px;
+            overflow: auto;
+            /* 115风格滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: #1890ff #333;
+        }
+
+        .floating-log-content::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .floating-log-content::-webkit-scrollbar-track {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        .floating-log-content::-webkit-scrollbar-thumb {
+            background: #1890ff;
+            border-radius: 4px;
+        }
+
+        .floating-log-content::-webkit-scrollbar-thumb:hover {
+            background: #40a9ff;
+        }
+
+        .floating-log-content::-webkit-scrollbar-corner {
+            background: #333;
+        }
+
+        .floating-log-display {
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 0;
+            white-space: pre;
+            word-wrap: normal;
+            overflow-x: auto;
+        }
+
+        .floating-log-resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 16px;
+            height: 16px;
+            cursor: se-resize;
+            background: linear-gradient(-45deg, transparent 0%, transparent 40%, var(--border-color) 40%, var(--border-color) 60%, transparent 60%);
+        }
+
+        .loading-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+
+        /* 🎯 智能分组界面优化 - 现代化设计 */
+
+        /* 分组统计信息面板 */
+        .grouping-stats {
+            background: linear-gradient(135deg, var(--color-primary-50) 0%, var(--color-primary-100) 100%);
+            border: 1px solid var(--color-primary-200);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--space-4);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: var(--space-2);
+        }
+
+        .stat-number {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-primary-600);
+            line-height: var(--line-height-none);
+            margin-bottom: var(--space-1);
+        }
+
+        .stat-label {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            font-weight: var(--font-weight-medium);
+        }
+
+        /* 进度指示器 */
+        .grouping-progress {
+            background: var(--color-bg-container);
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+            text-align: center;
+        }
+
+        .progress-spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--color-border-light);
+            border-top: 3px solid var(--color-primary-500);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: var(--space-2);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-text {
+            font-size: var(--font-size-base);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-1);
+        }
+
+        .progress-detail {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-tertiary);
+        }
+
+        /* 现代化分组卡片 */
+        .group-item {
+            background: var(--color-bg-container);
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-3);
+            overflow: hidden;
+            transition: all var(--duration-normal) var(--ease-out);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* 增强容器中的分组卡片 */
+        .groups-container-enhanced .group-item {
+            margin-bottom: var(--space-3);
+        }
+
+        .groups-container-enhanced .group-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .group-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+            border-color: var(--color-primary-300);
+        }
+
+        .group-item.selected {
+            border-color: var(--color-primary-500);
+            background: var(--color-primary-50);
+            box-shadow: 0 0 0 3px var(--color-primary-100);
+        }
+
+        .group-header {
+            display: flex;
+            align-items: center;
+            padding: var(--space-4);
+            background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-100) 100%);
+            border-bottom: 1px solid var(--color-border-light);
+            position: relative;
+        }
+
+        .group-header::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--color-primary-500);
+            border-radius: 0 var(--radius-base) var(--radius-base) 0;
+        }
+
+        .group-checkbox {
+            margin-right: var(--space-3);
+            width: 18px;
+            height: 18px;
+            accent-color: var(--color-primary-500);
+            cursor: pointer;
+        }
+
+        .group-title {
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            margin: 0;
+            flex: 1;
+            font-size: var(--font-size-md);
+            line-height: var(--line-height-tight);
+        }
+
+        .group-count {
+            background: var(--color-primary-500);
+            color: var(--color-text-inverse);
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            min-width: 24px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .group-files {
+            padding: var(--space-4);
+            max-height: 240px;
+            overflow-y: auto;
+            background: var(--color-bg-container);
+            /* 现代滚动条 */
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-primary-300) var(--color-gray-100);
+        }
+
+        .group-files::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .group-files::-webkit-scrollbar-track {
+            background: var(--color-gray-100);
+            border-radius: var(--radius-base);
+        }
+
+        .group-files::-webkit-scrollbar-thumb {
+            background: var(--color-primary-300);
+            border-radius: var(--radius-base);
+            transition: background var(--duration-fast) var(--ease-out);
+        }
+
+        .group-files::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary-500);
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: var(--space-2) 0;
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            transition: color var(--duration-fast) var(--ease-out);
+        }
+
+        .file-item:not(:last-child) {
+            border-bottom: 1px solid var(--color-border-light);
+        }
+
+        .file-item:hover {
+            color: var(--color-text-primary);
+        }
+
+        .file-icon {
+            margin-right: var(--space-2);
+            color: var(--color-success-500);
+            font-size: var(--font-size-sm);
+            width: 16px;
+            text-align: center;
+        }
+
+        .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 批量操作控制面板 */
+        .batch-controls {
+            background: var(--color-bg-container);
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+        }
+
+        .batch-controls-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .batch-controls-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .selection-info {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            padding: var(--space-1) var(--space-2);
+            background: var(--color-bg-component);
+            border-radius: var(--radius-base);
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .selection-info i {
+            color: var(--color-primary-500);
+        }
+
+        /* 空状态显示 */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-20);
+            color: var(--color-text-tertiary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            color: var(--color-text-disabled);
+            margin-bottom: var(--space-4);
+        }
+
+        .empty-state-title {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-2);
+        }
+
+        .empty-state-description {
+            font-size: var(--font-size-base);
+            color: var(--color-text-tertiary);
+            max-width: 400px;
+            margin: 0 auto;
+            line-height: var(--line-height-relaxed);
+        }
+
+        /* 响应式设计优化 */
+        @media (max-width: 768px) {
+            .grouping-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--space-2);
+                padding: var(--space-3);
+            }
+
+            .stat-number {
+                font-size: var(--font-size-xl);
+            }
+
+            .batch-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: var(--space-3);
+            }
+
+            .batch-controls-left,
+            .batch-controls-right {
+                justify-content: center;
+            }
+
+            .group-files {
+                max-height: 180px;
+            }
+
+            .empty-state {
+                padding: var(--space-12);
+            }
+
+            .empty-state-icon {
+                font-size: 36px;
+            }
+
+            /* 移动端智能分组模态框优化 */
+            #organizeFilesModal .modal-content {
+                width: 95vw;
+                height: 90vh;
+                max-width: 95vw;
+                max-height: 90vh;
+                margin: 5vh auto;
+            }
+
+            #organizeFilesModal .modal-body {
+                padding: 12px;
+            }
+
+            /* 移动端头部压缩 */
+            #organizeFilesModal .modal-header {
+                padding: 8px 12px; /* 进一步减少移动端内边距 */
+                min-height: 40px; /* 减少最小高度 */
+            }
+
+            #organizeFilesModal .modal-header h2 {
+                font-size: 14px; /* 移动端减小字体 */
+            }
+
+            #organizeFilesModal .modal-header h2 i {
+                font-size: 14px; /* 减小图标 */
+                margin-right: 4px; /* 减少间距 */
+            }
+
+            /* 移动端文件夹信息压缩 */
+            #organizeFilesModal .alert-info {
+                padding: 6px 8px; /* 移动端进一步减少内边距 */
+                font-size: 12px; /* 减小字体 */
+            }
+
+            #organizeFilesModal .alert-info strong {
+                font-size: 13px; /* 移动端文件夹名称 */
+            }
+
+            #organizeFilesModal .alert-info small {
+                font-size: 11px; /* 移动端文件信息 */
+            }
+
+            /* 移动端分组内容区域优化 - 大幅增加显示空间 */
+            #organizeFilesModal #suggestedGroups {
+                max-height: calc(90vh - 140px); /* 移动端大幅减少头部占用 */
+                min-height: 350px; /* 移动端增加最小高度 */
+                height: calc(90vh - 140px); /* 移动端固定高度，充分利用空间 */
+            }
+
+            /* 移动端全屏模式 */
+            #organizeFilesModal.fullscreen .modal-content {
+                width: 100vw;
+                height: 100vh;
+                max-width: 100vw;
+                max-height: 100vh;
+                margin: 0;
+            }
+
+            #organizeFilesModal.fullscreen #suggestedGroups {
+                max-height: calc(100vh - 120px); /* 移动端全屏时大幅减少头部占用 */
+                min-height: 550px; /* 移动端全屏时大幅增加最小高度 */
+                height: calc(100vh - 120px); /* 移动端全屏时固定高度，最大化利用空间 */
+            }
+
+            .folder-info-section .alert {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+
+            .folder-info-section {
+                flex: 0 0 10%;
+                min-height: 50px;
+                max-height: 70px;
+            }
+
+            .grouping-title-section {
+                flex: 0 0 5%;
+                height: 28px;
+                min-height: 28px;
+                max-height: 35px;
+            }
+
+            .grouping-title-section .form-label {
+                font-size: 12px;
+            }
+
+            #organizeFilesModal .groups-container-enhanced {
+                flex: 0 0 75%;
+            }
+
+            .bottom-controls-section {
+                flex: 0 0 10%;
+                min-height: 70px;
+                max-height: 90px;
+            }
+
+            .bottom-controls-section .form-check-label {
+                font-size: 11px;
+            }
+
+            .bottom-controls-section .btn-sm {
+                font-size: 10px;
+                padding: 3px 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grouping-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .group-header {
+                padding: var(--space-3);
+            }
+
+            .group-files {
+                padding: var(--space-3);
+                max-height: 160px;
+            }
+        }
+
+        /* 中等屏幕尺寸优化（平板等） */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            #organizeFilesModal .modal-content {
+                max-height: 85vh;
+                height: 85vh;
+                max-width: 90vw;
+                width: 90vw;
+                margin: 7.5vh auto;
+            }
+
+            #organizeFilesModal #suggestedGroups {
+                max-height: calc(85vh - 160px); /* 平板端大幅减少头部占用 */
+                min-height: 400px; /* 平板端增加最小高度 */
+                height: calc(85vh - 160px); /* 平板端固定高度，充分利用空间 */
+            }
+
+            #organizeFilesModal.fullscreen .modal-content {
+                width: 100vw;
+                height: 100vh;
+                max-width: 100vw;
+                max-height: 100vh;
+                margin: 0;
+            }
+
+            #organizeFilesModal.fullscreen #suggestedGroups {
+                max-height: calc(100vh - 140px); /* 平板全屏时大幅减少头部占用 */
+                min-height: 650px; /* 平板全屏时大幅增加最小高度 */
+                height: calc(100vh - 140px); /* 平板全屏时固定高度，最大化利用空间 */
+            }
+        }
+
+        /* 🚀 刮削进度显示样式 */
+        #scrapeProgressContainer {
+            margin-top: 10px;
+            padding: 12px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .progress-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--ant-text-color);
+        }
+
+        .progress-details {
+            font-size: 13px;
+            color: var(--ant-text-color-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        #progressFiles {
+            font-weight: 600;
+            color: var(--ant-primary-color);
+        }
+
+        #totalFiles {
+            font-weight: 500;
+        }
+
+        /* 智能分组模态框样式 - 可调节大小，超紧凑 */
+        #organizeFilesModal .modal-content {
+            max-height: 95vh;
+            height: 80vh;
+            max-width: 95vw;
+            width: 80vw;
+            min-width: 450px;
+            min-height: 350px;
+            margin: 2.5vh auto;
+            display: flex;
+            flex-direction: column;
+            resize: both;
+            overflow: hidden;
+            border: 2px solid var(--ant-border-color-base);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* 任务进行中时的视觉提示 */
+        #organizeFilesModal.task-in-progress .modal-content {
+            border-color: #ff7875;
+            box-shadow: 0 4px 12px rgba(255, 120, 117, 0.3), 0 0 0 2px rgba(255, 120, 117, 0.1);
+        }
+
+        #organizeFilesModal.task-in-progress .modal-header {
+            background: linear-gradient(135deg, #fff2f0 0%, #ffece8 100%);
+            border-bottom: 1px solid #ffccc7;
+        }
+
+        /* 刮削结果预览底部按钮优化样式 */
+        #scrapePreviewModal .ant-modal-footer {
+            background: var(--ant-background-color-light);
+            border-radius: 0 0 6px 6px;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        #scrapePreviewModal .footer-info {
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        #scrapePreviewModal .footer-info i {
+            animation: pulse-info 2s infinite;
+        }
+
+        @keyframes pulse-info {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        #scrapePreviewModal .footer-buttons .ant-btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #scrapePreviewModal .footer-buttons .ant-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        #scrapePreviewModal .footer-buttons .ant-btn:hover::before {
+            left: 100%;
+        }
+
+        #scrapePreviewModal .footer-buttons .ant-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #scrapePreviewModal .footer-buttons .ant-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #scrapePreviewModal #applyRenameBtn:not(:disabled) {
+            background: linear-gradient(135deg, var(--ant-primary-color) 0%, #40a9ff 100%);
+            border-color: var(--ant-primary-color);
+            color: white;
+        }
+
+        #scrapePreviewModal #applyRenameBtn:not(:disabled):hover {
+            background: linear-gradient(135deg, #40a9ff 0%, var(--ant-primary-color) 100%);
+            border-color: #40a9ff;
+        }
+
+        #scrapePreviewModal #selectedCount {
+            animation: pulse-count 2s infinite;
+            font-weight: 600;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        @keyframes pulse-count {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        #scrapePreviewModal #scrapePreviewModalCancel:hover {
+            background-color: #f5f5f5;
+            border-color: #d9d9d9;
+        }
+
+        /* 调节大小的视觉提示 */
+        #organizeFilesModal .modal-content::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(-45deg, transparent 30%, var(--ant-border-color-base) 30%, var(--ant-border-color-base) 70%, transparent 70%);
+            cursor: nw-resize;
+        }
+
+        /* 🚀 智能分组界面滚动条样式优化 - 大幅增加宽度，提升操作体验 */
+        #organizeFilesModal {
+            /* Firefox 滚动条样式 */
+            scrollbar-width: auto;
+            scrollbar-color: var(--ant-primary-color) #f1f1f1;
+        }
+
+        #organizeFilesModal ::-webkit-scrollbar {
+            width: 20px;
+            height: 20px;
+        }
+
+        #organizeFilesModal ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            box-shadow: inset 0 0 3px rgba(0,0,0,0.1);
+        }
+
+        #organizeFilesModal ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #d1d1d1 0%, #c1c1c1 50%, #b1b1b1 100%);
+            border-radius: 10px;
+            border: 3px solid #f1f1f1;
+            min-height: 40px;
+            box-shadow: inset 0 0 3px rgba(0,0,0,0.1);
+        }
+
+        #organizeFilesModal ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #b8b8b8 0%, #a8a8a8 50%, #989898 100%);
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        #organizeFilesModal ::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #989898 0%, #888888 50%, #787878 100%);
+        }
+
+        #organizeFilesModal ::-webkit-scrollbar-corner {
+            background: #f1f1f1;
+        }
+
+        /* 分组结果区域专用滚动条 - 最外层容器优化 */
+        #suggestedGroups {
+            /* Firefox 滚动条样式 */
+            scrollbar-width: auto;
+            scrollbar-color: var(--ant-primary-color) #fafafa;
+        }
+
+        #suggestedGroups::-webkit-scrollbar {
+            width: 24px;
+        }
+
+        #suggestedGroups::-webkit-scrollbar-track {
+            background: #fafafa;
+            border-radius: 12px;
+            border: 2px solid var(--ant-border-color-split);
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+        }
+
+        #suggestedGroups::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--ant-primary-color-hover) 0%, var(--ant-primary-color) 50%, var(--ant-primary-color-active) 100%);
+            border-radius: 12px;
+            border: 4px solid #fafafa;
+            min-height: 50px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #suggestedGroups::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--ant-primary-color) 0%, var(--ant-primary-color-hover) 50%, var(--ant-primary-color) 100%);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transform: scale(1.05);
+            transition: all 0.2s ease;
+        }
+
+        #suggestedGroups::-webkit-scrollbar-thumb:active {
+            background: var(--ant-primary-color-active);
+            transform: scale(0.95);
+        }
+
+        /* 🚀 优化d-flex布局元素的空间占用 */
+        .d-flex.justify-content-between.align-items-center {
+            min-height: auto;
+            padding-top: 2px;
+            padding-bottom: 2px;
+        }
+
+        /* 超紧凑智能分组界面布局 */
+        #organizeFilesModal .form-label {
+            margin-bottom: 2px;
+            font-weight: 500;
+            font-size: 12px;
+        }
+
+        #organizeFilesModal .mb-2 {
+            margin-bottom: 3px !important;
+        }
+
+        #organizeFilesModal .mb-3 {
+            margin-bottom: 4px !important;
+        }
+
+        #organizeFilesModal .mb-1 {
+            margin-bottom: 2px !important;
+        }
+
+        /* 优化按钮组 - confirmOrganizeBtn 更大 */
+        #organizeFilesModal .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+            line-height: 1.2;
+            min-height: 28px;
+        }
+
+        #organizeFilesModal #confirmOrganizeBtn {
+            padding: 6px 12px !important;
+            font-size: 13px !important;
+            min-height: 32px !important;
+            font-weight: 500 !important;
+        }
+
+        #organizeFilesModal .gap-1 > * + * {
+            margin-left: 4px !important;
+        }
+
+        /* 超紧凑模态框头部空间 */
+        #organizeFilesModal .modal-header {
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--ant-border-color-split);
+            flex-shrink: 0;
+        }
+
+        #organizeFilesModal .modal-header h2 {
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        /* 超紧凑模态框主体空间 */
+        #organizeFilesModal .modal-body {
+            padding: 4px 8px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* 🚀 优化 organizeFilesStatus 状态显示区域 */
+        #organizeFilesStatus {
+            font-size: 12px !important;
+            line-height: 1.2 !important;
+            max-height: 20px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 2px 0;
+            margin: 0;
+        }
+
+        #organizeFilesStatus.alert {
+            padding: 4px 8px !important;
+            margin: 0 !important;
+            border-radius: 3px;
+            font-size: 11px !important;
+            line-height: 1.1 !important;
+            max-height: 24px;
+        }
+
+        #organizeFilesStatus.alert-info {
+            background-color: rgba(13, 202, 240, 0.1);
+            border: 1px solid rgba(13, 202, 240, 0.2);
+            color: #0dcaf0;
+        }
+
+        #organizeFilesStatus.alert-success {
+            background-color: rgba(25, 135, 84, 0.1);
+            border: 1px solid rgba(25, 135, 84, 0.2);
+            color: #198754;
+        }
+
+        #organizeFilesStatus.alert-danger {
+            background-color: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+
+        /* 🚀 响应式设计优化 - 移动设备，超紧凑 */
+        @media (max-width: 768px) {
+            #organizeFilesModal .modal-content {
+                width: 95vw;
+                height: 80vh;
+                min-width: 300px;
+                min-height: 250px;
+                margin: 2.5vh auto;
+            }
+
+            .d-flex.justify-content-between.align-items-center {
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 2px;
+            }
+
+            .d-flex.justify-content-between.align-items-center > div {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 1px;
+            }
+
+            #organizeFilesModal .btn-sm {
+                padding: 3px 6px;
+                font-size: 10px;
+                min-height: 24px;
+            }
+
+            #organizeFilesModal #confirmOrganizeBtn {
+                padding: 5px 10px !important;
+                font-size: 12px !important;
+                min-height: 28px !important;
+            }
+
+            #organizeFilesModal .modal-header {
+                padding: 2px 4px;
+            }
+
+            #organizeFilesModal .modal-body {
+                padding: 2px 4px;
+            }
+
+            #organizeFilesModal .modal-header h2 {
+                font-size: 12px;
+            }
+
+            #organizeFilesModal .form-label {
+                font-size: 9px;
+            }
+
+            /* 移动设备上的状态显示优化 */
+            #organizeFilesStatus {
+                max-width: 100% !important;
+                text-align: center;
+                font-size: 9px !important;
+                margin-bottom: 2px;
+            }
+
+            #organizeFilesStatus.alert {
+                font-size: 8px !important;
+                padding: 1px 2px !important;
+                max-height: 16px;
+            }
+
+            /* 移动设备滚动条优化 - 进一步增大触摸友好性 */
+            #organizeFilesModal ::-webkit-scrollbar {
+                width: 28px;
+                height: 28px;
+            }
+
+            #suggestedGroups::-webkit-scrollbar {
+                width: 32px;
+            }
+
+            #suggestedGroups::-webkit-scrollbar-track {
+                border-radius: 16px;
+                border: 3px solid var(--ant-border-color-split);
+            }
+
+            #suggestedGroups::-webkit-scrollbar-thumb {
+                min-height: 60px;
+                border: 6px solid #fafafa;
+                border-radius: 16px;
+            }
+        }
+
+        /* 🚀 响应式设计优化 - 平板设备，超紧凑 */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            #organizeFilesModal .modal-content {
+                width: 80vw;
+                height: 70vh;
+                min-width: 400px;
+                min-height: 300px;
+            }
+
+            .d-flex.justify-content-between.align-items-center {
+                padding-top: 1px;
+                padding-bottom: 1px;
+            }
+
+            #organizeFilesModal .modal-header {
+                padding: 3px 6px;
+            }
+
+            #organizeFilesModal .modal-body {
+                padding: 3px 6px;
+            }
+
+            #organizeFilesModal .btn-sm {
+                padding: 3px 6px;
+                font-size: 11px;
+                min-height: 26px;
+            }
+
+            #organizeFilesModal #confirmOrganizeBtn {
+                padding: 5px 10px !important;
+                font-size: 12px !important;
+                min-height: 30px !important;
+            }
+
+            /* 平板设备滚动条优化 - 适中的触摸友好尺寸 */
+            #organizeFilesModal ::-webkit-scrollbar {
+                width: 24px;
+                height: 24px;
+            }
+
+            #suggestedGroups::-webkit-scrollbar {
+                width: 28px;
+            }
+
+            #suggestedGroups::-webkit-scrollbar-track {
+                border-radius: 14px;
+                border: 2px solid var(--ant-border-color-split);
+            }
+
+            #suggestedGroups::-webkit-scrollbar-thumb {
+                border-radius: 14px;
+                border: 5px solid #fafafa;
+                min-height: 55px;
+            }
+        }
+
+        #organizeFilesModal .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* 分组内容区域尺寸优化 - 大幅增加可用空间 */
+        #organizeFilesModal #suggestedGroups {
+            max-height: calc(85vh - 180px); /* 进一步减少头部和文件夹信息占用的空间 */
+            min-height: 450px; /* 大幅增加最小高度 */
+            flex: 1; /* 使用弹性布局占用更多空间 */
+        }
+
+        /* 模态框内容区域布局优化 */
+        #organizeFilesModal .modal-body > .mb-3:last-of-type {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* 确保分组区域能够充分利用空间 - 增强版 */
+        #organizeFilesModal .modal-body {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* 分组内容区域占用最大可用空间 */
+        #organizeFilesModal #suggestedGroups {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* 智能分组文件夹信息区域压缩优化 */
+        #organizeFilesModal .modal-body > .mb-3:first-child {
+            flex-shrink: 0;
+            margin-bottom: 12px; /* 减少底部间距 */
+        }
+
+        #organizeFilesModal .modal-body .form-label {
+            font-size: 13px; /* 减小标签字体 */
+            font-weight: 500;
+            margin-bottom: 6px; /* 减少标签底部间距 */
+            color: var(--ant-text-color-secondary);
+        }
+
+        #organizeFilesModal .alert-info {
+            padding: 8px 12px; /* 减少内边距 */
+            margin-bottom: 0;
+            border-radius: 4px;
+            background-color: #e6f7ff;
+            border: 1px solid #91d5ff;
+            font-size: 13px; /* 减小字体 */
+            line-height: 1.4; /* 减少行高 */
+        }
+
+        #organizeFilesModal .alert-info strong {
+            font-size: 14px; /* 文件夹名称稍大一点 */
+            color: var(--ant-text-color);
+        }
+
+        #organizeFilesModal .alert-info small {
+            font-size: 12px; /* 减小文件信息字体 */
+            color: var(--ant-text-color-secondary);
+            margin-top: 2px; /* 减少上边距 */
+            display: block;
+        }
+
+        /* 智能分组模态框头部压缩优化 */
+        #organizeFilesModal .modal-header {
+            padding: 12px 16px; /* 减少内边距 */
+            border-bottom: 1px solid var(--ant-border-color-split);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            min-height: 48px; /* 设置最小高度 */
+        }
+
+        #organizeFilesModal .modal-header h2 {
+            font-size: 16px; /* 减小字体大小 */
+            font-weight: 500;
+            color: var(--ant-text-color);
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        #organizeFilesModal .modal-header h2 i {
+            font-size: 16px; /* 减小图标大小 */
+            margin-right: 6px; /* 减少间距 */
+        }
+
+        /* 模态框头部控件样式 */
+        .modal-header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* 减少控件间距 */
+        }
+
+        .modal-header-controls .btn-sm {
+            padding: 4px 8px; /* 减少按钮内边距 */
+            min-height: 28px; /* 减少按钮高度 */
+            font-size: 12px; /* 减小字体 */
+        }
+
+        .modal-header-controls .close-button {
+            font-size: 18px; /* 减小关闭按钮大小 */
+            padding: 4px;
+            line-height: 1;
+        }
+
+        /* 全屏模式样式 */
+        #organizeFilesModal.fullscreen .modal-content {
+            width: 100vw;
+            height: 100vh;
+            max-width: 100vw;
+            max-height: 100vh;
+            margin: 0;
+            border-radius: 0;
+        }
+
+        #organizeFilesModal.fullscreen #suggestedGroups {
+            max-height: calc(100vh - 160px); /* 全屏时给更多空间，大幅减少头部占用 */
+            min-height: 700px; /* 全屏时大幅增加最小高度 */
+            height: calc(100vh - 160px); /* 全屏时固定高度，充分利用空间 */
+        }
+
+        /* 智能分组特定样式 */
+        #organizeFilesModal #suggestedGroups {
+            scrollbar-width: thin;
+            scrollbar-color: var(--ant-primary-color) #f0f0f0;
+        }
+
+        #organizeFilesModal #suggestedGroups::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #organizeFilesModal #suggestedGroups::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+
+        #organizeFilesModal #suggestedGroups::-webkit-scrollbar-thumb {
+            background: var(--ant-primary-color);
+            border-radius: 3px;
+        }
+
+        #organizeFilesModal #suggestedGroups::-webkit-scrollbar-thumb:hover {
+            background: var(--ant-primary-color-hover);
+        }
+
+        /* 移除自定义头部样式，使用标准模态框样式 */
+
+        /* 移除自定义主体和卡片样式，使用标准样式 */
+
+        /* 移除自定义分组区域样式，使用标准样式 */
+
+        /* 移除自定义加载状态样式，使用标准样式 */
+
+        /* 智能分组模态框已调整为标准样式，与主页保持一致 */
+
+        /* 旧样式已移除，使用新的现代化设计 */
+
+        /* 旧的加载状态样式已移除，使用新设计 */
+
+        /* Ant Design Modal 样式 */
+        .ant-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+
+        .ant-modal-mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+        }
+
+        .ant-modal-wrap {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .ant-modal-content {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .ant-modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--ant-border-color-split);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .ant-modal-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--ant-text-color);
+            margin: 0;
+        }
+
+        .ant-modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: var(--ant-text-color-secondary);
+            font-size: 16px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .ant-modal-close:hover {
+            color: var(--ant-text-color);
+        }
+
+        .ant-modal-body {
+            padding: 24px;
+            flex: 1;
+            overflow: auto;
+        }
+
+        .ant-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--ant-border-color-split);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        /* 移动设备适配 */
+        @media (max-width: 768px) {
+            .ant-modal-wrap {
+                padding: 8px;
+            }
+
+            .ant-modal-content {
+                max-height: 95vh;
+                width: 100% !important;
+                max-width: none !important;
+            }
+
+            .ant-modal-header,
+            .ant-modal-body,
+            .ant-modal-footer {
+                padding: 16px;
+            }
+
+            .ant-modal-title {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-centered">
+        <!-- 主内容区域 - 专业无头部布局 -->
+        <main class="main-content">
+            <!-- 上部：文件列表区域 (75%) -->
+            <section class="top-section">
+                <div class="card card-borderless" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <!-- 合并工具栏 -->
+                    <div class="unified-toolbar">
+                        <div class="toolbar-left">
+                            <div class="section-title">
+                                <i class="fas fa-folder"></i>
+                                文件列表
+                            </div>
+                            <button id="recursiveGetFilesBtn" class="btn btn-sm">
+                                <i class="fas fa-folder-open"></i>
+                                <span>递归获取</span>
+                            </button>
+                        </div>
+                        <div class="toolbar-right">
+                            <button id="openConfigModalBtn" class="btn btn-outline btn-sm">
+                                <i class="fas fa-cog"></i>
+                                <span>配置</span>
+                            </button>
+                            <button id="restartAppBtn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-redo"></i>
+                                <span>重启</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 重新设计面包屑导航 -->
+                    <div class="breadcrumb-redesigned">
+                        <div class="breadcrumb-path">
+                            <i class="fas fa-home breadcrumb-home"></i>
+                            <span id="pathLinks" class="breadcrumb-text">根目录</span>
+                        </div>
+                        <div class="file-count-info">
+                            <span id="fileCount" class="count-number">0</span>
+                            <span class="count-text">项目</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body" style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0;">
+
+                        <!-- 隐藏的表单 -->
+                        <form id="getFilesForm" style="display: none; padding: 20px;">
+                            <div style="margin-bottom: 16px;">
+                                <label for="folder_id" style="display: block; margin-bottom: 8px; font-weight: 500;">输入文件夹ID:</label>
+                                <input type="number" id="folder_id" name="folder_id" class="ant-input" placeholder="输入123云盘文件夹ID" style="width: 100%; padding: 8px 12px; border: 1px solid var(--ant-border-color-base); border-radius: 6px;">
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <label for="limit" style="display: block; margin-bottom: 8px; font-weight: 500;">文件数限制:</label>
+                                <input type="number" id="limit" name="limit" value="100" min="1" max="500" class="ant-input" style="width: 100%; padding: 8px 12px; border: 1px solid var(--ant-border-color-base); border-radius: 6px;">
+                            </div>
+                            <button type="submit" class="ant-btn ant-btn-primary">获取文件列表</button>
+                        </form>
+
+                        <div id="fileListStatus" style="padding: 0 20px;"></div>
+
+                        <!-- 专业文件管理表格 -->
+                        <div id="fileListContainer" style="flex: 1; overflow: auto; margin: 0;">
+                            <div class="table-wrapper">
+                                <table id="fileTable" class="table">
+                                    <thead>
+                                        <tr>
+                                            <th class="table-cell-icon">类型</th>
+                                            <th class="table-cell-filename">名称</th>
+                                            <th class="table-cell-size" style="width: 80px;">大小</th>
+                                            <th class="table-cell-checkbox">
+                                                <div style="display: flex; align-items: center; gap: var(--space-sm); justify-content: center;">
+                                                    <input type="checkbox" id="selectAllFiles" style="margin: 0;">
+                                                    <label for="selectAllFiles" style="margin: 0; font-size: var(--font-size-label);">选择</label>
+                                                </div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- 文件列表将在这里动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 紧凑工具栏 -->
+                        <div class="compact-toolbar">
+                            <div class="toolbar-buttons">
+                                <button id="scrapePreviewBtn" class="btn btn-primary btn-compact" disabled>
+                                    <i class="fas fa-search"></i>
+                                    <span>预览刮削</span>
+                                </button>
+                                <button id="cancelScrapePreviewBtn" class="btn btn-compact" style="display: none;">
+                                    <i class="fas fa-stop"></i>
+                                    <span>停止</span>
+                                </button>
+                                <button id="moveSelectedBtn" class="btn btn-compact" disabled>
+                                    <i class="fas fa-arrows-alt"></i>
+                                    <span>移动</span>
+                                </button>
+                                <button id="renameSelectedBtn" class="btn btn-compact" disabled>
+                                    <i class="fas fa-edit"></i>
+                                    <span>重命名</span>
+                                </button>
+                                <button id="deleteSelectedBtn" class="btn btn-compact" disabled>
+                                    <i class="fas fa-trash"></i>
+                                    <span>删除</span>
+                                </button>
+                                <button id="createFolderBtn" class="btn btn-compact">
+                                    <i class="fas fa-folder-plus"></i>
+                                    <span>新建文件夹</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- 下部：实时日志区域 (30%) -->
+            <section class="bottom-section">
+                <div class="card card-borderless" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <!-- 内嵌工具栏 -->
+                    <div class="inline-toolbar">
+                        <div class="section-title">
+                            <i class="fas fa-terminal"></i>
+                            实时日志
+                        </div>
+                        <div style="display: flex; gap: var(--space-sm);">
+                            <button class="btn btn-sm" onclick="document.getElementById('logDisplay').textContent = ''">
+                                <i class="fas fa-trash"></i>
+                                <span>清空</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0;">
+                        <div id="logContainer" class="log-container-115" style="flex: 1; margin: 0; border: none; border-radius: 0;">
+                            <pre id="logDisplay" class="log-display-115"></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- 下部区域结束 -->
+        </main>
+        <!-- 主内容区域结束 -->
+
+        <!-- 悬浮日志窗口 - 超紧凑版 -->
+        <div id="floatingLogWindow" class="floating-log-window" style="display: none;">
+            <div class="floating-log-header">
+                <span class="floating-log-title"><i class="fas fa-chart-bar"></i> 日志</span>
+                <div class="floating-log-controls">
+                    <!-- 功能按钮组 -->
+                    <button id="floatingClearLogBtn" class="btn" title="清空">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button id="floatingPauseLogBtn" class="btn" title="暂停">
+                        <i class="fas fa-pause"></i>
+                    </button>
+                    <button id="floatingDownloadLogBtn" class="btn" title="下载">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <!-- 分隔线 -->
+                    <div class="floating-log-separator"></div>
+                    <!-- 窗口控制按钮组 -->
+                    <button id="dockLogBtn" class="btn" title="还原到卡片">
+                        <i class="fas fa-thumbtack"></i>
+                    </button>
+                    <button id="minimizeLogBtn" class="btn" title="最小化">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button id="closeFloatingLogBtn" class="btn" title="关闭">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="floating-log-content">
+                <pre id="floatingLogDisplay" class="floating-log-display"></pre>
+            </div>
+            <div class="floating-log-resize-handle"></div>
+        </div>
+
+    </div>
+
+    <!-- 刮削结果预览弹窗 -->
+    <div id="scrapePreviewModal" class="ant-modal" style="display: none;">
+        <div class="ant-modal-mask"></div>
+        <div class="ant-modal-wrap">
+            <div class="ant-modal-content" style="max-width: 1200px; width: 90vw;">
+                <div class="ant-modal-header">
+                    <div class="ant-modal-title">
+                        <i class="fas fa-film" style="color: var(--ant-primary-color); margin-right: 8px;"></i>
+                        刮削结果预览
+                    </div>
+                    <button class="ant-modal-close" id="scrapePreviewModalClose" aria-label="关闭">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="ant-modal-body">
+                    <!-- 状态信息 -->
+                    <div id="scrapePreviewStatus" style="margin-bottom: 16px;"></div>
+
+                    <!-- 预览信息头部 -->
+                    <div class="preview-info" style="margin-bottom: 16px; padding: 12px; background: var(--ant-background-color-light); border-radius: 6px; font-size: 14px; color: var(--ant-text-color-secondary);">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <i class="fas fa-chart-bar" style="color: var(--ant-primary-color); margin-right: 8px;"></i>
+                                刮削对比预览 (<span id="previewCount" style="font-weight: 500; color: var(--ant-primary-color);">0</span> 个文件)
+                            </div>
+                            <div class="scrape-sort-controls" style="display: flex; align-items: center;">
+                                <label class="form-label mb-0 me-1" style="font-size: 11px; color: var(--ant-text-color-secondary);">排序:</label>
+                                <select id="scrapeSortSelect" class="form-select form-select-sm" style="width: auto; min-width: 120px; font-size: 11px; padding: 2px 4px; height: 24px;">
+                                    <option value="default">默认顺序</option>
+                                    <option value="name-asc">原始名称 A-Z</option>
+                                    <option value="name-desc">原始名称 Z-A</option>
+                                    <option value="suggested-asc">建议名称 A-Z</option>
+                                    <option value="suggested-desc">建议名称 Z-A</option>
+                                    <option value="size-desc">文件大小 ↓</option>
+                                    <option value="size-asc">文件大小 ↑</option>
+                                    <option value="status">状态优先</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 预览表格容器 -->
+                    <div class="ant-table-wrapper" style="max-height: 60vh; overflow: auto; border: 1px solid var(--ant-border-color-split); border-radius: 6px;">
+                        <table id="previewTable" class="ant-table">
+                            <thead class="ant-table-thead">
+                                <tr>
+                                    <th class="ant-table-cell" style="width: 40px;">
+                                        <input type="checkbox" id="selectAllPreviews" style="margin: 0;">
+                                    </th>
+                                    <th class="ant-table-cell">原始文件名</th>
+                                    <th class="ant-table-cell">建议重命名</th>
+                                    <th class="ant-table-cell" style="width: 80px;">大小</th>
+                                    <th class="ant-table-cell" style="width: 120px;">TMDB 信息</th>
+                                    <th class="ant-table-cell" style="width: 80px;">状态</th>
+                                </tr>
+                            </thead>
+                            <tbody class="ant-table-tbody">
+                                <!-- 刮削预览结果将在这里动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="ant-modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-top: 1px solid var(--ant-border-color-base);">
+                    <!-- 左侧信息区域 -->
+                    <div class="footer-info" style="display: flex; align-items: center; color: var(--ant-text-color-secondary); font-size: 14px;">
+                        <i class="fas fa-info-circle" style="color: var(--ant-primary-color); margin-right: 8px;"></i>
+                        <span id="selectedFilesInfo">请选择要重命名的文件</span>
+                    </div>
+
+                    <!-- 右侧按钮区域 -->
+                    <div class="footer-buttons" style="display: flex; gap: 12px;">
+                        <button id="scrapePreviewModalCancel" class="ant-btn" style="min-width: 100px; height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <i class="fas fa-times" style="font-size: 14px;"></i>
+                            <span>取消</span>
+                        </button>
+                        <button id="applyRenameBtn" class="ant-btn ant-btn-primary" disabled style="min-width: 120px; height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px; position: relative;">
+                            <i class="fas fa-check" style="font-size: 14px;"></i>
+                            <span>应用重命名</span>
+                            <span id="selectedCount" style="background: rgba(255,255,255,0.2); border-radius: 10px; padding: 2px 6px; font-size: 12px; margin-left: 4px; display: none;">0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作结果弹窗 -->
+    <div id="operationResultModal" class="ant-modal" style="display: none;">
+        <div class="ant-modal-mask"></div>
+        <div class="ant-modal-wrap">
+            <div class="ant-modal-content" style="max-width: 800px; width: 80vw;">
+                <div class="ant-modal-header">
+                    <div class="ant-modal-title">
+                        <i class="fas fa-chart-bar" style="color: var(--ant-primary-color); margin-right: 8px;"></i>
+                        操作结果
+                    </div>
+                    <button class="ant-modal-close" id="operationResultModalClose" aria-label="关闭">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="ant-modal-body">
+                    <div id="operationResults" style="max-height: 60vh; overflow-y: auto; font-size: 13px; line-height: 1.4;">
+                        <!-- 操作结果将在这里显示 -->
+                    </div>
+                </div>
+                <div class="ant-modal-footer">
+                    <button id="operationResultModalOk" class="ant-btn ant-btn-primary">
+                        <i class="fas fa-check"></i> 确定
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动文件模态框 - 已废弃，现在直接使用文件夹浏览器 -->
+    <div id="moveModal" class="modal" style="display: none !important;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>移动文件到指定文件夹</h2>
+                <span class="close-button" id="moveModalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <p>已选择 <span id="selectedFileCount">0</span> 个文件进行移动</p>
+                </div>
+                <div class="mb-3">
+                    <label for="targetFolderPathInput" class="form-label">目标文件夹:</label>
+                    <div class="input-group">
+                        <input type="text" id="targetFolderPathInput" class="form-control" placeholder="请点击浏览按钮选择目标文件夹" readonly>
+                        <button id="browseFolderBtn" class="btn btn-outline-secondary" type="button">浏览文件夹</button>
+                    </div>
+                    <small class="form-text text-muted">点击"浏览文件夹"按钮选择目标位置</small>
+                    <input type="hidden" id="targetFolderIdInput">
+                </div>
+                <div id="moveStatus" class="mb-3"></div>
+                <div class="d-flex justify-content-end">
+                    <button id="cancelMoveBtn" class="btn btn-secondary me-2">取消</button>
+                    <button id="confirmMoveBtn" class="btn btn-primary" disabled>确认移动</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文件夹浏览模态框 -->
+    <div id="folderBrowserModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>选择目标文件夹</h2>
+                <span class="close-button" id="folderBrowserModalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- 路径导航 -->
+                <div class="mb-3">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <span id="browserPathLinks"></span>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <!-- 文件夹列表 -->
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="50">类型</th>
+                                <th>名称</th>
+                                <th width="80">选择</th>
+                            </tr>
+                        </thead>
+                        <tbody id="folderBrowserTableBody">
+                            <!-- 文件夹列表将在这里动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 当前选择 -->
+                <div class="mb-3">
+                    <label class="form-label">当前选择的文件夹:</label>
+                    <div class="alert alert-info" id="selectedFolderInfo">
+                        <strong id="selectedFolderName">未选择</strong>
+                        <br><small id="selectedFolderPath">请选择一个文件夹作为移动目标</small>
+                    </div>
+                </div>
+
+                <!-- 移动状态显示 -->
+                <div id="folderBrowserStatus" class="mb-3"></div>
+
+                <div class="d-flex justify-content-end">
+                    <button id="cancelFolderBrowserBtn" class="btn btn-secondary me-2">取消</button>
+                    <button id="confirmFolderSelectionBtn" class="btn btn-primary" disabled>确认移动</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 配置模态框 -->
+    <div id="configModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>应用配置</h2>
+                <span class="close-button">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info" role="alert">
+                    <h6 class="alert-heading">📋 配置说明</h6>
+                    <p class="mb-0">请根据您的实际情况配置以下参数。所有配置项都会实时保存并生效。如有疑问，请参考每个字段下方的说明文字。</p>
+                </div>
+                <form id="configForm">
+                    <h5 class="mb-3">⚙️ 性能配置</h5>
+                    <div class="mb-3">
+                        <label for="qpsLimitInput" class="form-label">QPS 限制 (QPS_LIMIT):</label>
+                        <input type="number" id="qpsLimitInput" name="QPS_LIMIT" class="form-control" min="1">
+                        <small class="form-text text-muted">每秒请求数限制，控制API调用频率，建议值：5-15</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="chunkSizeInput" class="form-label">分块大小 (CHUNK_SIZE):</label>
+                        <input type="number" id="chunkSizeInput" name="CHUNK_SIZE" class="form-control" min="1">
+                        <small class="form-text text-muted">批量处理文件时每批的文件数量，建议值：20-100</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="maxWorkersInput" class="form-label">最大工作线程数 (MAX_WORKERS):</label>
+                        <input type="number" id="maxWorkersInput" name="MAX_WORKERS" class="form-control" min="1">
+                        <small class="form-text text-muted">并发处理的最大线程数，建议值：2-8</small>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="mb-3">☁️ 123云盘配置</h5>
+
+                    <div class="mb-3">
+                        <label for="clientIdInput" class="form-label">Client ID (CLIENT_ID):</label>
+                        <input type="text" id="clientIdInput" name="CLIENT_ID" class="form-control">
+                        <small class="form-text text-muted">123云盘开放平台的客户端ID，用于API认证</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="clientSecretInput" class="form-label">Client Secret (CLIENT_SECRET):</label>
+                        <input type="text" id="clientSecretInput" name="CLIENT_SECRET" class="form-control">
+                        <small class="form-text text-muted">123云盘开放平台的客户端密钥，用于API认证</small>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="mb-3">🔑 API 密钥配置</h5>
+
+                    <div class="mb-3">
+                        <label for="tmdbApiKeyInput" class="form-label">TMDB API Key (TMDB_API_KEY):</label>
+                        <input type="text" id="tmdbApiKeyInput" name="TMDB_API_KEY" class="form-control">
+                        <small class="form-text text-muted">The Movie Database API密钥，用于获取电影和电视剧信息</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="geminiApiKeyInput" class="form-label">Gemini API Key (GEMINI_API_KEY):</label>
+                        <input type="text" id="geminiApiKeyInput" name="GEMINI_API_KEY" class="form-control">
+                        <small class="form-text text-muted">Gemini AI模型的API密钥，用于智能文件分析和重命名</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="geminiApiUrlInput" class="form-label">Gemini API URL (GEMINI_API_URL):</label>
+                        <input type="text" id="geminiApiUrlInput" name="GEMINI_API_URL" class="form-control">
+                        <small class="form-text text-muted">Gemini API的服务地址，支持自定义代理或本地部署</small>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="mb-3">🤖 AI 模型配置</h5>
+
+                    <div class="mb-3">
+                        <label for="modelInput" class="form-label">模型 (MODEL):</label>
+                        <input type="text" id="modelInput" name="MODEL" class="form-control">
+                        <small class="form-text text-muted">用于文件信息提取的AI模型名称，如：gemini-2.5-flash-lite-preview-06-17-search</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="groupingModelInput" class="form-label">智能分组模型 (GROUPING_MODEL):</label>
+                        <div class="input-group">
+                            <input type="text" id="groupingModelInput" name="GROUPING_MODEL" class="form-control">
+                            <button type="button" class="btn btn-outline-secondary" onclick="testAIConnection()" title="测试AI连接">
+                                <i class="fas fa-stethoscope"></i> 测试AI
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">专门用于智能文件分组的AI模型，如：gemini-2.5-flash-lite-preview-06-17</small>
+                        <div id="aiTestResult" class="mt-2" style="display: none;"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="languageInput" class="form-label">语言 (LANGUAGE):</label>
+                        <input type="text" id="languageInput" name="LANGUAGE" class="form-control">
+                        <small class="form-text text-muted">界面和AI响应的语言设置，如：zh-CN（中文）、en-US（英文）</small>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="mb-3">🔄 重试和超时配置</h5>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="apiMaxRetriesInput" class="form-label">API最大重试次数 (API_MAX_RETRIES):</label>
+                                <input type="number" id="apiMaxRetriesInput" name="API_MAX_RETRIES" class="form-control" min="1" max="10">
+                                <small class="form-text text-muted">通用API调用失败时的最大重试次数，建议值：2-5</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="apiRetryDelayInput" class="form-label">API重试延迟 (API_RETRY_DELAY):</label>
+                                <input type="number" id="apiRetryDelayInput" name="API_RETRY_DELAY" class="form-control" min="1" max="30" step="0.5">
+                                <small class="form-text text-muted">API重试之间的等待时间（秒），建议值：1-5</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="aiApiTimeoutInput" class="form-label">AI API超时时间 (AI_API_TIMEOUT):</label>
+                                <input type="number" id="aiApiTimeoutInput" name="AI_API_TIMEOUT" class="form-control" min="10" max="300">
+                                <small class="form-text text-muted">AI API调用的超时时间（秒），建议值：30-120</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="aiMaxRetriesInput" class="form-label">AI最大重试次数 (AI_MAX_RETRIES):</label>
+                                <input type="number" id="aiMaxRetriesInput" name="AI_MAX_RETRIES" class="form-control" min="1" max="10">
+                                <small class="form-text text-muted">AI API调用失败时的最大重试次数，建议值：2-5</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="aiRetryDelayInput" class="form-label">AI重试延迟 (AI_RETRY_DELAY):</label>
+                                <input type="number" id="aiRetryDelayInput" name="AI_RETRY_DELAY" class="form-control" min="1" max="30" step="0.5">
+                                <small class="form-text text-muted">AI API重试之间的等待时间（秒），建议值：1-5</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tmdbApiTimeoutInput" class="form-label">TMDB API超时时间 (TMDB_API_TIMEOUT):</label>
+                                <input type="number" id="tmdbApiTimeoutInput" name="TMDB_API_TIMEOUT" class="form-control" min="10" max="300">
+                                <small class="form-text text-muted">TMDB API调用的超时时间（秒），建议值：30-120</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tmdbMaxRetriesInput" class="form-label">TMDB最大重试次数 (TMDB_MAX_RETRIES):</label>
+                                <input type="number" id="tmdbMaxRetriesInput" name="TMDB_MAX_RETRIES" class="form-control" min="1" max="10">
+                                <small class="form-text text-muted">TMDB API调用失败时的最大重试次数，建议值：2-5</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tmdbRetryDelayInput" class="form-label">TMDB重试延迟 (TMDB_RETRY_DELAY):</label>
+                                <input type="number" id="tmdbRetryDelayInput" name="TMDB_RETRY_DELAY" class="form-control" min="1" max="30" step="0.5">
+                                <small class="form-text text-muted">TMDB API重试之间的等待时间（秒），建议值：1-5</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cloudApiMaxRetriesInput" class="form-label">云盘API最大重试次数 (CLOUD_API_MAX_RETRIES):</label>
+                                <input type="number" id="cloudApiMaxRetriesInput" name="CLOUD_API_MAX_RETRIES" class="form-control" min="1" max="10">
+                                <small class="form-text text-muted">123云盘API调用失败时的最大重试次数，建议值：2-5</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cloudApiRetryDelayInput" class="form-label">云盘API重试延迟 (CLOUD_API_RETRY_DELAY):</label>
+                                <input type="number" id="cloudApiRetryDelayInput" name="CLOUD_API_RETRY_DELAY" class="form-control" min="1" max="30" step="0.5">
+                                <small class="form-text text-muted">123云盘API重试之间的等待时间（秒），建议值：1-5</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="groupingMaxRetriesInput" class="form-label">智能分组最大重试次数 (GROUPING_MAX_RETRIES):</label>
+                                <input type="number" id="groupingMaxRetriesInput" name="GROUPING_MAX_RETRIES" class="form-control" min="1" max="10">
+                                <small class="form-text text-muted">智能分组失败时的最大重试次数，建议值：2-5</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="groupingRetryDelayInput" class="form-label">智能分组重试延迟 (GROUPING_RETRY_DELAY):</label>
+                                <input type="number" id="groupingRetryDelayInput" name="GROUPING_RETRY_DELAY" class="form-control" min="1" max="30" step="0.5">
+                                <small class="form-text text-muted">智能分组重试之间的等待时间（秒），建议值：1-5</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="taskQueueTimeoutInput" class="form-label">任务队列超时时间 (TASK_QUEUE_GET_TIMEOUT):</label>
+                                <input type="number" id="taskQueueTimeoutInput" name="TASK_QUEUE_GET_TIMEOUT" class="form-control" min="0.1" max="10" step="0.1">
+                                <small class="form-text text-muted">任务队列获取任务的超时时间（秒），建议值：0.5-3.0</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">保存配置</button>
+                    <div id="configStatus" class="mt-3"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重命名对话框 -->
+    <div id="renameModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> 重命名选中文件</h2>
+                <span class="close-button" id="renameModalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- 状态信息 -->
+                <div id="renameStatus" class="mb-3"></div>
+
+                <!-- 操作工具栏 -->
+                <div class="rename-toolbar mb-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2"><i class="fas fa-chart-bar"></i> 已选择 <strong id="selectedFileCount">0</strong> 个文件</span>
+                                <button id="selectAllRenameBtn" class="btn btn-sm btn-outline-primary me-2">全选</button>
+                                <button id="deselectAllRenameBtn" class="btn btn-sm btn-outline-secondary">取消全选</button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-end">
+                                <button id="resetNamesBtn" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-redo"></i> 重置
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 批量操作面板 -->
+                <div class="batch-operations mb-3" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-tools"></i> 批量操作</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">添加前缀:</label>
+                                        <div class="input-group">
+                                            <input type="text" id="prefixInput" class="form-control" placeholder="例如: [4K]">
+                                            <button id="applyPrefixBtn" class="btn btn-outline-primary">应用</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">添加后缀:</label>
+                                        <div class="input-group">
+                                            <input type="text" id="suffixInput" class="form-control" placeholder="例如: _backup">
+                                            <button id="applySuffixBtn" class="btn btn-outline-primary">应用</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">查找替换:</label>
+                                        <div class="input-group">
+                                            <input type="text" id="findInput" class="form-control" placeholder="查找文本">
+                                            <input type="text" id="replaceInput" class="form-control" placeholder="替换为">
+                                            <button id="applyReplaceBtn" class="btn btn-outline-primary">替换</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">大小写转换:</label>
+                                        <div class="btn-group w-100" role="group">
+                                            <button id="upperCaseBtn" class="btn btn-outline-secondary">大写</button>
+                                            <button id="lowerCaseBtn" class="btn btn-outline-secondary">小写</button>
+                                            <button id="titleCaseBtn" class="btn btn-outline-secondary">标题格式</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 文件列表 -->
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-hover">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width: 40px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAllRenameCheckbox">
+                                        <label class="form-check-label" for="selectAllRenameCheckbox"></label>
+                                    </div>
+                                </th>
+                                <th style="width: 35%;"><i class="fas fa-file"></i> 原文件名</th>
+                                <th style="width: 35%;"><i class="fas fa-edit"></i> 新文件名</th>
+                                <th style="width: 15%;"><i class="fas fa-chart-bar"></i> 大小</th>
+                                <th style="width: 15%;"><i class="fas fa-tools"></i> 操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="renameTableBody">
+                            <!-- 重命名列表将在这里动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 底部操作栏 - 优化布局减少空间占用 -->
+                <div class="d-flex justify-content-between align-items-center mt-2 py-1">
+                    <div>
+                        <button id="toggleBatchOpsBtn" class="btn btn-outline-info btn-sm" style="padding: 4px 8px; font-size: 12px;">
+                            <i class="fas fa-tools" style="font-size: 11px;"></i> 批量操作
+                        </button>
+                        <button id="previewChangesBtn" class="btn btn-outline-warning btn-sm ms-1" style="padding: 4px 8px; font-size: 12px;">
+                            <i class="fas fa-eye" style="font-size: 11px;"></i> 预览更改
+                        </button>
+                    </div>
+                    <div>
+                        <button id="cancelRenameBtn" class="btn btn-secondary btn-sm me-1" style="padding: 4px 8px; font-size: 12px;">取消</button>
+                        <button id="confirmRenameBtn" class="btn btn-primary btn-sm" disabled style="padding: 4px 8px; font-size: 12px;">
+                            <i class="fas fa-check" style="font-size: 11px;"></i> 确认重命名 (<span id="confirmCount">0</span>)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建文件夹对话框 -->
+    <div id="createFolderModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>新建文件夹</h2>
+                <span class="close-button" id="createFolderModalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="createFolderStatus" class="mb-3"></div>
+                <div class="mb-3">
+                    <label for="folderNameInput" class="form-label">文件夹名称:</label>
+                    <input type="text" id="folderNameInput" class="form-control" placeholder="请输入文件夹名称" maxlength="255">
+                    <small class="form-text text-muted">文件夹名称不能与当前目录下的其他文件夹重名</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">创建位置:</label>
+                    <div class="alert alert-info">
+                        <strong id="currentLocationName">根目录</strong>
+                        <br><small id="currentLocationPath">/</small>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button id="cancelCreateFolderBtn" class="btn btn-secondary me-2">取消</button>
+                    <button id="confirmCreateFolderBtn" class="btn btn-primary" disabled>创建文件夹</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 智能重命名文件夹对话框 -->
+    <div id="smartRenameModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>智能重命名文件夹</h2>
+                <span class="close-button" id="smartRenameModalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="smartRenameStatus" class="mb-3"></div>
+                <div class="mb-3">
+                    <label class="form-label">当前文件夹名称:</label>
+                    <div class="alert alert-info">
+                        <strong id="currentFolderName">-</strong>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="suggestedFolderName" class="form-label">建议的文件夹名称:</label>
+                    <input type="text" id="suggestedFolderName" class="form-control" placeholder="正在分析文件夹内容..." readonly>
+                    <small class="form-text text-muted">基于文件夹内容智能生成的建议名称</small>
+                </div>
+                <div class="mb-3">
+                    <label for="customFolderName" class="form-label">自定义名称 (可选):</label>
+                    <input type="text" id="customFolderName" class="form-control" placeholder="您可以修改建议的名称" maxlength="255">
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button id="cancelRenameTaskBtn" class="btn btn-warning me-2" style="display: none;">停止运行</button>
+                    <button id="cancelSmartRenameBtn" class="btn btn-secondary me-2">取消</button>
+                    <button id="confirmSmartRenameBtn" class="btn btn-primary" disabled>确认重命名</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 智能文件分组对话框 -->
+    <div id="organizeFilesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-robot" style="color: var(--ant-primary-color); margin-right: 8px;"></i>
+                    智能文件分组
+                </h2>
+                <div class="modal-header-controls">
+                    <button type="button" id="toggleFullscreenBtn" class="btn btn-outline-secondary btn-sm me-2" title="切换全屏模式">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <span class="close-button" id="organizeFilesModalClose">&times;</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <!-- 文件夹信息区域 - 极度紧凑 -->
+                <div class="mb-1" style="flex-shrink: 0;">
+                    <div class="alert alert-info" style="padding: 4px 8px; margin-bottom: 2px; font-size: 12px; line-height: 1.3; border-radius: 4px;">
+                        <strong id="organizeFolderName" style="font-size: 13px; color: var(--ant-primary-color);">-</strong>
+                        <small id="organizeFolderInfo" style="font-size: 11px; color: var(--ant-text-color-secondary); margin-left: 8px;">包含 - 个视频文件</small>
+                    </div>
+                </div>
+
+                <!-- 分组内容区域 - 极度紧凑 -->
+                <div class="mb-1" style="flex-shrink: 0;">
+                    <div class="d-flex justify-content-between align-items-center" style="padding: 2px 0; margin-bottom: 4px;">
+                        <label class="form-label mb-0" style="font-size: 13px; font-weight: 600; color: var(--ant-text-color);">
+                            <i class="fas fa-layer-group" style="color: var(--ant-primary-color); margin-right: 6px; font-size: 12px;"></i>
+                            建议的文件分组
+                        </label>
+                        <div class="group-sort-controls" style="display: none;">
+                            <label class="form-label mb-0 me-1" style="font-size: 11px; color: var(--ant-text-color-secondary);">排序:</label>
+                            <select id="groupSortSelect" class="form-select form-select-sm" style="width: auto; min-width: 110px; font-size: 11px; padding: 2px 4px; height: 24px;">
+                                <option value="default">默认顺序</option>
+                                <option value="name-asc" selected>名称 A-Z</option>
+                                <option value="name-desc">名称 Z-A</option>
+                                <option value="count-desc">文件数量 ↓</option>
+                                <option value="count-asc">文件数量 ↑</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="suggestedGroups" style="background-color: #fafafa; border: 1px solid var(--ant-border-color-split); border-radius: 6px; padding: 8px; overflow-y: auto; margin-bottom: 6px; flex: 1; min-height: 400px; max-height: calc(100vh - 120px);">
+                    <div style="display: flex; align-items: center; justify-content: center; padding: 20px 12px; color: var(--ant-text-color-secondary); font-size: 13px;">
+                        <div class="spinner-border spinner-border-sm me-2" role="status" style="width: 16px; height: 16px;"></div>
+                        <span>正在分析文件内容...</span>
+                    </div>
+                </div>
+
+                <!-- 底部控制区域 - 极度紧凑 -->
+                <div style="flex-shrink: 0; margin-top: 4px;">
+                    <div class="form-check" style="margin-bottom: 4px;">
+                        <input class="form-check-input" type="checkbox" id="createSubfolders" checked style="margin-top: 1px; transform: scale(0.9);">
+                        <label class="form-check-label" for="createSubfolders" style="font-size: 11px; line-height: 1.3;">
+                            <i class="fas fa-folder-plus" style="color: var(--ant-success-color); margin-right: 4px; font-size: 10px;"></i>
+                            自动创建子文件夹并移动文件
+                        </label>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center" style="padding: 4px 0;">
+                        <div id="organizeFilesStatus" class="me-2" style="font-size: 12px; line-height: 1.3; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+                        <div class="d-flex" style="gap: 6px;">
+                            <button id="cancelTaskBtn" class="btn btn-warning btn-sm" style="display: none; padding: 5px 10px; font-size: 12px; min-height: 30px;">
+                                <i class="fas fa-stop" style="font-size: 11px; margin-right: 4px;"></i> 停止
+                            </button>
+                            <button id="cancelOrganizeBtn" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 12px; min-height: 30px;">
+                                <i class="fas fa-times" style="font-size: 11px; margin-right: 4px;"></i> 取消
+                            </button>
+                            <button id="confirmOrganizeBtn" class="btn btn-primary" disabled style="padding: 7px 14px; font-size: 14px; min-height: 34px; font-weight: 500;">
+                                <i class="fas fa-magic" style="font-size: 13px; margin-right: 5px;"></i> 开始整理
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重命名结果弹出框 -->
+    <div id="renameResultModal" class="modal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-check-circle"></i> 重命名结果</h2>
+                <span class="close-button" id="renameResultModalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- 结果统计 -->
+                <div id="renameResultSummary" class="mb-3"></div>
+
+                <!-- 详细结果表格 -->
+                <div id="renameResultDetails" class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <!-- 结果表格将在这里动态加载 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="closeRenameResultBtn">关闭</button>
+                <button type="button" class="btn btn-primary" id="refreshFileListBtn">刷新文件列表</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文件夹信息显示区域 -->
+    <div id="folderInfoPanel" class="folder-info-panel" style="display: none;">
+        <div class="folder-info-content">
+            <div class="folder-info-header">
+                <h4><i class="fas fa-folder"></i> 文件夹信息</h4>
+                <button id="closeFolderInfo" class="close-btn">&times;</button>
+            </div>
+            <div id="folderInfoDetails" class="folder-info-details">
+                <div class="loading">正在加载...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div id="contextMenu" class="context-menu" style="display: none;">
+        <ul>
+            <li id="contextMenuSuggestRename">智能重命名文件夹</li>
+            <li id="contextMenuOrganizeFiles">智能文件分组</li>
+            <li id="contextMenuDeleteEmpty">删除空文件夹</li>
+        </ul>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}?v=20250621-2"></script>
+</body>
+</html>
