@@ -32,8 +32,8 @@
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/jonntd/pan23-scraper.git
-cd pan23-scraper
+git clone https://github.com/jonntd/pan123-scraper.git
+cd pan123-scraper
 ```
 
 2. **安装依赖**
@@ -72,7 +72,7 @@ python app.py
 
 ### 高级配置
 - `QPS_LIMIT`: API请求频率限制（默认12）
-- `CHUNK_SIZE`: 批处理大小（默认150）
+- `CHUNK_SIZE`: 批处理大小（默认50）
 - `MAX_WORKERS`: 最大并发线程数（默认12）
 - `TASK_TIMEOUT_SECONDS`: 任务超时时间（默认1800秒）
 
@@ -142,17 +142,6 @@ A: 验证TMDB API密钥是否有效。
 **Q: 智能分组任务卡住？**
 A: 可以取消当前任务并重新提交。
 
-**Q: 刮削显示"Unknown (0000)"？**
-A: 这通常是电视剧媒体类型识别问题，已在最新版本中修复。
-
-### 日志查看
-```bash
-# 查看应用日志
-tail -f app.log
-
-# 查看错误日志
-grep ERROR app.log
-```
 
 
 
@@ -200,7 +189,7 @@ pan23-scraper/
 
 ## 📊 项目统计
 
-![GitHub stars](https://img.shields.io/github/stars/jonntd/pan23-scraper)
-![GitHub forks](https://img.shields.io/github/forks/jonntd/pan23-scraper)
-![GitHub issues](https://img.shields.io/github/issues/jonntd/pan23-scraper)
-![GitHub license](https://img.shields.io/github/license/jonntd/pan23-scraper)
+![GitHub stars](https://img.shields.io/github/stars/jonntd/pan123-scraper)
+![GitHub forks](https://img.shields.io/github/forks/jonntd/pan123-scraper)
+![GitHub issues](https://img.shields.io/github/issues/jonntd/pan123-scraper)
+![GitHub license](https://img.shields.io/github/license/jonntd/pan123-scraper)
