@@ -1335,9 +1335,9 @@ def refresh_access_token_if_needed():
             access_token = new_token
             API_HEADERS["Authorization"] = f"Bearer {new_token}"
 
-            # 保存到文件
+            # 保存到文件（Windows兼容性：指定UTF-8编码）
             try:
-                with open("123_access_token.txt", "w") as f:
+                with open("123_access_token.txt", "w", encoding='utf-8') as f:
                     f.write(new_token)
                 logging.info("✅ 访问令牌刷新成功并已保存")
                 return True
@@ -1385,9 +1385,9 @@ def ensure_valid_access_token(func):
                             access_token = new_token
                             API_HEADERS["Authorization"] = f"Bearer {new_token}"
 
-                            # 保存到文件
+                            # 保存到文件（Windows兼容性：指定UTF-8编码）
                             try:
-                                with open("123_access_token.txt", "w") as f:
+                                with open("123_access_token.txt", "w", encoding='utf-8') as f:
                                     f.write(new_token)
                                 logging.info("✅ 访问令牌强制刷新成功")
                             except Exception as save_e:
@@ -1414,9 +1414,9 @@ def ensure_valid_access_token(func):
                             access_token = new_token
                             API_HEADERS["Authorization"] = f"Bearer {new_token}"
 
-                            # 保存到文件
+                            # 保存到文件（Windows兼容性：指定UTF-8编码）
                             try:
-                                with open("123_access_token.txt", "w") as f:
+                                with open("123_access_token.txt", "w", encoding='utf-8') as f:
                                     f.write(new_token)
                                 logging.info("✅ 访问令牌强制刷新成功，将重试API调用")
                             except Exception as save_e:
@@ -1881,10 +1881,17 @@ def validate_api_response(response):
 # ================================
 
 class QueueHandler(logging.Handler):
-    """自定义日志处理器，将日志消息添加到队列中供Web界面显示"""
+    """自定义日志处理器，将日志消息添加到队列中供Web界面显示（Windows兼容性增强）"""
     def emit(self, record):
-        log_entry = self.format(record)
-        log_queue.append(log_entry)
+        try:
+            log_entry = self.format(record)
+            # 使用安全编码处理，避免Windows系统中的字符编码问题
+            safe_log_entry = safe_log_message(log_entry)
+            log_queue.append(safe_log_entry)
+        except Exception as e:
+            # 如果日志处理失败，添加一个错误消息而不是崩溃
+            error_msg = f"[日志处理错误: {str(e)}]"
+            log_queue.append(error_msg)
 
 
 def initialize_logging_system():
@@ -1903,14 +1910,25 @@ def initialize_logging_system():
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
 
-    # 添加文件处理器
-    file_handler = RotatingFileHandler('rename_log.log', maxBytes=1024 * 1024, backupCount=3)
+    # 添加文件处理器（Windows兼容性：明确指定UTF-8编码）
+    file_handler = RotatingFileHandler(
+        'rename_log.log',
+        maxBytes=1024 * 1024,
+        backupCount=3,
+        encoding='utf-8'  # 明确指定UTF-8编码，解决Windows中文字符问题
+    )
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
     root_logger.addHandler(file_handler)
 
-    # 添加控制台处理器
+    # 添加控制台处理器（Windows兼容性：设置错误处理）
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    # 在Windows系统中，控制台可能不支持某些Unicode字符，设置错误处理策略
+    if hasattr(console_handler.stream, 'reconfigure'):
+        try:
+            console_handler.stream.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass  # 如果重配置失败，继续使用默认设置
     root_logger.addHandler(console_handler)
 
     # 添加自定义队列处理器
@@ -2020,8 +2038,8 @@ def initialize_access_token():
     token = ""
 
     if os.path.exists("123_access_token.txt"):
-        # 如果存在访问令牌文件，读取并检查是否过期
-        with open("123_access_token.txt", "r") as f:
+        # 如果存在访问令牌文件，读取并检查是否过期（Windows兼容性：指定UTF-8编码）
+        with open("123_access_token.txt", "r", encoding='utf-8') as f:
             token = f.read().strip()
         logging.info("📁 从文件读取访问令牌")
 
@@ -2037,9 +2055,9 @@ def initialize_access_token():
         logging.info(f"🔑 CLIENT_ID: {CLIENT_ID[:10]}..., CLIENT_SECRET: {'已设置' if CLIENT_SECRET else '未设置'}")
         token = get_access_token_from_api(CLIENT_ID, CLIENT_SECRET)
         if token:
-            # 保存新令牌到文件
+            # 保存新令牌到文件（Windows兼容性：指定UTF-8编码）
             try:
-                with open("123_access_token.txt", "w") as f:
+                with open("123_access_token.txt", "w", encoding='utf-8') as f:
                     f.write(token)
                 logging.info("✅ 成功获取并保存新访问令牌")
             except Exception as e:
@@ -2727,16 +2745,98 @@ def move(file_id_list: list, to_parent_file_id: int):
 
 
 def sanitize_filename(filename):
+    """
+    清理文件名，确保Windows和其他系统兼容性
+
+    Args:
+        filename (str): 原始文件名
+
+    Returns:
+        str: 清理后的文件名
+    """
     # 移除或替换不允许的字符
     # Windows文件名不允许的字符: < > : " / \ | ? *
     # Linux/macOS文件名不允许的字符: /
     # 这里我们处理所有常见的不允许字符
     sanitized = re.sub(r'[<>:"/\\|?*]', '', filename)
+
+    # Windows保留名称检查（CON, PRN, AUX, NUL, COM1-9, LPT1-9）
+    reserved_names = {
+        'CON', 'PRN', 'AUX', 'NUL',
+        'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+        'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+    }
+
+    name_without_ext = os.path.splitext(sanitized)[0].upper()
+    if name_without_ext in reserved_names:
+        sanitized = f"_{sanitized}"  # 添加前缀避免保留名称冲突
+
+    # 移除文件名开头和结尾的空格和点（Windows不允许）
+    sanitized = sanitized.strip(' .')
+
+    # 确保文件名不为空
+    if not sanitized:
+        sanitized = "unnamed_file"
+
     # 确保文件名长度不超过255个字符（常见文件系统限制）
     if len(sanitized) > 255:
         name, ext = os.path.splitext(sanitized)
         sanitized = name[:(255 - len(ext))] + ext
+
     return sanitized
+
+
+def safe_encode_for_windows(text):
+    """
+    安全编码文本以避免Windows系统中的字符编码问题
+
+    Args:
+        text (str): 需要编码的文本
+
+    Returns:
+        str: 安全编码后的文本
+    """
+    if not isinstance(text, str):
+        text = str(text)
+
+    try:
+        # 尝试编码为UTF-8并解码，确保字符串是有效的UTF-8
+        text.encode('utf-8').decode('utf-8')
+        return text
+    except UnicodeEncodeError:
+        # 如果编码失败，使用错误处理策略
+        return text.encode('utf-8', errors='replace').decode('utf-8')
+    except UnicodeDecodeError:
+        # 如果解码失败，使用错误处理策略
+        return text.encode('utf-8', errors='ignore').decode('utf-8')
+
+
+def safe_log_message(message):
+    """
+    安全处理日志消息，避免Windows系统中的编码错误
+
+    Args:
+        message (str): 日志消息
+
+    Returns:
+        str: 安全处理后的日志消息
+    """
+    try:
+        # 确保消息是字符串类型
+        if not isinstance(message, str):
+            message = str(message)
+
+        # 使用安全编码处理
+        safe_message = safe_encode_for_windows(message)
+
+        # 替换可能导致问题的特殊字符
+        # 某些控制字符在Windows控制台中可能导致显示问题
+        safe_message = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '?', safe_message)
+
+        return safe_message
+    except Exception:
+        # 如果所有处理都失败，返回一个安全的默认消息
+        return "[日志消息编码错误]"
 
 
 
