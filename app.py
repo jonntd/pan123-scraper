@@ -433,7 +433,10 @@ app_config = {
 
     # 质量评估配置
     "ENABLE_QUALITY_ASSESSMENT": False,  # 智能分组是否启用质量评估（禁用可提高性能）
-    "ENABLE_SCRAPING_QUALITY_ASSESSMENT": True  # 刮削功能是否启用质量评估（建议开启）
+    "ENABLE_SCRAPING_QUALITY_ASSESSMENT": True,  # 刮削功能是否启用质量评估（建议开启）
+
+    # 端口管理配置
+    "KILL_OCCUPIED_PORT_PROCESS": True  # 是否自动结束占用端口的进程（启用可避免端口冲突）
 }
 
 # ================================
@@ -7251,16 +7254,171 @@ def execute_selected_groups():
         logging.error(f"执行选中分组时发生错误: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)})
 
-def find_available_port(start_port=5001, max_attempts=10):
-    """查找可用端口"""
+def get_process_using_port(port):
+    """获取占用指定端口的进程信息"""
+    import subprocess
+    import sys
+
+    try:
+        if sys.platform == "win32":
+            # Windows系统使用netstat命令
+            cmd = f"netstat -ano | findstr :{port}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            if result.returncode == 0 and result.stdout.strip():
+                lines = result.stdout.strip().split('\n')
+                for line in lines:
+                    if f':{port}' in line and 'LISTENING' in line:
+                        parts = line.split()
+                        if len(parts) >= 5:
+                            pid = parts[-1]
+                            return int(pid) if pid.isdigit() else None
+        else:
+            # Linux/macOS系统使用lsof命令
+            cmd = f"lsof -ti:{port}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            if result.returncode == 0 and result.stdout.strip():
+                pid = result.stdout.strip().split('\n')[0]
+                return int(pid) if pid.isdigit() else None
+    except Exception as e:
+        logging.debug(f"获取端口 {port} 占用进程信息失败: {e}")
+
+    return None
+
+
+def kill_process_by_pid(pid):
+    """根据PID结束进程"""
+    import subprocess
+    import sys
+
+    try:
+        if sys.platform == "win32":
+            # Windows系统使用taskkill命令
+            cmd = f"taskkill /F /PID {pid}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            return result.returncode == 0
+        else:
+            # Linux/macOS系统使用kill命令
+            cmd = f"kill -9 {pid}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            return result.returncode == 0
+    except Exception as e:
+        logging.error(f"结束进程 {pid} 失败: {e}")
+        return False
+
+
+def get_process_name_by_pid(pid):
+    """根据PID获取进程名称"""
+    import subprocess
+    import sys
+
+    try:
+        if sys.platform == "win32":
+            # Windows系统使用tasklist命令
+            cmd = f"tasklist /FI \"PID eq {pid}\" /FO CSV /NH"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            if result.returncode == 0 and result.stdout.strip():
+                lines = result.stdout.strip().split('\n')
+                if lines:
+                    # CSV格式：进程名,PID,会话名,会话号,内存使用
+                    parts = lines[0].split(',')
+                    if len(parts) >= 1:
+                        return parts[0].strip('"')
+        else:
+            # Linux/macOS系统使用ps命令
+            cmd = f"ps -p {pid} -o comm="
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+    except Exception as e:
+        logging.debug(f"获取进程 {pid} 名称失败: {e}")
+
+    return "未知进程"
+
+
+def kill_port_process(port, force=True):
+    """结束占用指定端口的进程
+
+    Args:
+        port (int): 端口号
+        force (bool): 是否强制结束进程
+
+    Returns:
+        bool: 是否成功结束进程
+    """
+    try:
+        pid = get_process_using_port(port)
+        if pid is None:
+            logging.debug(f"端口 {port} 未被占用")
+            return True
+
+        process_name = get_process_name_by_pid(pid)
+        logging.info(f"🔍 检测到端口 {port} 被进程占用: PID={pid}, 进程名={process_name}")
+
+        # 检查是否是自己的进程（避免误杀）
+        current_pid = os.getpid()
+        if pid == current_pid:
+            logging.warning(f"⚠️ 检测到占用端口的是当前进程，跳过结束操作")
+            return False
+
+        if force:
+            logging.info(f"🔪 正在结束占用端口 {port} 的进程: PID={pid}, 进程名={process_name}")
+            success = kill_process_by_pid(pid)
+            if success:
+                logging.info(f"✅ 成功结束进程: PID={pid}, 进程名={process_name}")
+                # 等待一小段时间确保端口释放
+                import time
+                time.sleep(1)
+                return True
+            else:
+                logging.error(f"❌ 结束进程失败: PID={pid}, 进程名={process_name}")
+                return False
+        else:
+            logging.info(f"ℹ️ 发现占用端口 {port} 的进程: PID={pid}, 进程名={process_name}，但未设置强制结束")
+            return False
+
+    except Exception as e:
+        logging.error(f"处理端口 {port} 占用进程时发生错误: {e}")
+        return False
+
+
+def find_available_port(start_port=5001, max_attempts=10, kill_occupied=True):
+    """查找可用端口，可选择结束占用进程
+
+    Args:
+        start_port (int): 起始端口号
+        max_attempts (int): 最大尝试次数
+        kill_occupied (bool): 是否结束占用端口的进程
+
+    Returns:
+        int or None: 可用端口号，如果找不到则返回None
+    """
     import socket
+
+    # 首先尝试默认端口
+    if kill_occupied:
+        logging.info(f"🔍 检查端口 {start_port} 是否被占用...")
+        if kill_port_process(start_port):
+            # 尝试使用释放的端口
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(('localhost', start_port))
+                    logging.info(f"✅ 端口 {start_port} 现在可用")
+                    return start_port
+            except OSError:
+                logging.warning(f"⚠️ 端口 {start_port} 仍然被占用")
+
+    # 如果默认端口不可用，查找其他端口
     for port in range(start_port, start_port + max_attempts):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.bind(('localhost', port))
                 return port
         except OSError:
+            if kill_occupied and port == start_port:
+                # 已经尝试过结束进程，跳过
+                continue
             continue
+
     return None
 
 def start_flask_app():
@@ -7270,14 +7428,27 @@ def start_flask_app():
     # 获取端口配置
     default_port = int(os.environ.get('PORT', 5001))
 
-    # 检查端口是否可用
-    available_port = find_available_port(default_port)
+    # 检查是否启用自动结束占用进程功能
+    kill_occupied_process = app_config.get('KILL_OCCUPIED_PORT_PROCESS', True)
+
+    if kill_occupied_process:
+        logging.info(f"🔍 启用自动结束占用端口进程功能")
+    else:
+        logging.info(f"ℹ️ 自动结束占用端口进程功能已禁用")
+
+    # 检查端口是否可用，可选择结束占用进程
+    available_port = find_available_port(default_port, kill_occupied=kill_occupied_process)
     if available_port is None:
         logging.error(f"❌ 无法找到可用端口（尝试范围：{default_port}-{default_port+9}）")
+        if not kill_occupied_process:
+            logging.info(f"💡 提示：可以在配置中启用 'KILL_OCCUPIED_PORT_PROCESS' 来自动结束占用端口的进程")
         return
 
     if available_port != default_port:
-        logging.warning(f"⚠️ 端口 {default_port} 被占用，使用端口 {available_port}")
+        if kill_occupied_process:
+            logging.info(f"🔄 端口 {default_port} 处理完成，使用端口 {available_port}")
+        else:
+            logging.warning(f"⚠️ 端口 {default_port} 被占用，使用端口 {available_port}")
 
     logging.info(f"🌐 启动服务器，端口: {available_port}")
 
