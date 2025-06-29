@@ -79,7 +79,7 @@ EXTRACTION_PROMPT = """
         *   **HDR/杜比视界:** DV, HDR, HDR10, DoVi, HLG, HDR10+, WCG
         *   **版本信息:** Director's Cut, Extended, Uncut, Theatrical, Special Edition, Ultimate Edition, Remastered, ReCut, Criterion, IMAX, Limited Series
         *   **发布组/站点:** [RARBG], [YTS.AM], FGT, CtrlHD, DEFLATE, xixi, EVO, GHOULS, FRDS, PANTHEON, WiKi, CHDBits, OurBits, MTeam, LoL, TRP, FWB, x264-GROUP, VCB-Studio, ANi, Lilith-Raws
-        *   **季/集号:** S01E01, S1E1, Season 1 Episode 1, Part 1, P1, Ep01, Vol.1, 第1季第1集, SP (Special), OVA, ONA, Movie (对于番剧剧场版), NCED, NCOP (无字幕OP/ED)
+        *   **季/集号:** S01E01, S1E1, Season 1 Episode 1, Part 1, P1, Ep01, Vol.1, 第1季第1集, SP (Special), OVA, ONA, Movie (对于番剧剧场版), NCED, NCOP (无字幕OP/ED), 文件名开头的数字（如"01. 标题"、"02. 标题"等）
         *   **年份:** (2023), [2023], .2023., _2023_
         *   **其他:** (R), _ , -, ., ~ , { }, [ ], ` `, + 等常见分隔符，以及广告词、多余的空格、多余的语言代码（如CHS, ENG, JPN）等。
     *   **提取以下结构化信息：**
@@ -4341,25 +4341,43 @@ def extract_movie_name_and_info(chunk):
             tmdb_id = file_info.get('tmdb_id', '')
             if tmdb_id and tmdb_id.isdigit():
                 logging.info(f"🎯 发现TMDB ID: {tmdb_id}，直接使用而不搜索")
-                # 直接使用提取的信息构建结果
+                # 从TMDB API获取详细信息而不是使用AI提取的可能不准确的信息
                 media_type = file_info.get('media_type', 'movie')
-                title_value = file_info.get('title', 'Unknown')
 
-                tmdb_result = {
-                    'id': int(tmdb_id),
-                    'media_type': media_type
-                }
+                try:
+                    # 根据媒体类型调用相应的TMDB API
+                    if media_type in ['tv', 'tv_show', 'anime']:
+                        url = f"{TMDB_API_URL_BASE}/tv/{tmdb_id}"
+                    else:
+                        url = f"{TMDB_API_URL_BASE}/movie/{tmdb_id}"
 
-                # 根据媒体类型设置正确的标题字段
-                if media_type in ['tv', 'tv_show']:
-                    tmdb_result['name'] = title_value  # 电视剧使用 name 字段
-                    tmdb_result['first_air_date'] = file_info.get('year', '') + '-01-01' if file_info.get('year') else ''
-                else:
-                    tmdb_result['title'] = title_value  # 电影使用 title 字段
-                    tmdb_result['release_date'] = file_info.get('year', '') + '-01-01' if file_info.get('year') else ''
+                    params = {
+                        "api_key": TMDB_API_KEY,
+                        "language": LANGUAGE,
+                    }
 
-                tmdb_result['original_title'] = file_info.get('original_title', '')
-                logging.info(f"✅ 使用TMDB ID {tmdb_id} 构建结果: {tmdb_result.get('title')}")
+                    response = requests.get(url, params=params, timeout=TMDB_API_TIMEOUT)
+                    response.raise_for_status()
+                    tmdb_result = response.json()
+
+                    logging.info(f"✅ 使用TMDB ID {tmdb_id} 构建结果: {tmdb_result.get('name') or tmdb_result.get('title', 'Unknown')}")
+                except Exception as e:
+                    logging.warning(f"⚠️ 无法从TMDB API获取ID {tmdb_id} 的详细信息: {e}")
+                    # 回退到使用AI提取的信息
+                    title_value = file_info.get('title', 'Unknown')
+                    tmdb_result = {
+                        'id': int(tmdb_id),
+                        'media_type': media_type
+                    }
+
+                    if media_type in ['tv', 'tv_show', 'anime']:
+                        tmdb_result['name'] = title_value
+                        tmdb_result['first_air_date'] = file_info.get('year', '') + '-01-01' if file_info.get('year') else ''
+                    else:
+                        tmdb_result['title'] = title_value
+                        tmdb_result['release_date'] = file_info.get('year', '') + '-01-01' if file_info.get('year') else ''
+
+                    tmdb_result['original_title'] = file_info.get('original_title', '')
             else:
                 # 使用增强版TMDB搜索函数
                 logging.info(f"🔍 开始TMDB搜索: {file_info.get('title', 'Unknown')}")
@@ -4386,6 +4404,10 @@ def extract_movie_name_and_info(chunk):
                     title = tmdb_result.get('name', 'Unknown')
                     first_air_date = tmdb_result.get('first_air_date', '0000-01-01')
                     tmdb_id = tmdb_result.get('id', 'unknown')
+
+                    # 调试日志：输出TMDB结果的详细信息
+                    logging.debug(f"🔍 TMDB结果详情: name='{tmdb_result.get('name')}', first_air_date='{tmdb_result.get('first_air_date')}', id='{tmdb_result.get('id')}'")
+                    logging.debug(f"🔍 提取的标题信息: title='{title}', first_air_date='{first_air_date}', tmdb_id='{tmdb_id}'")
 
                     # 确保 season 和 episode 是整数，如果为 None 或其他非数字类型，则默认为 1
                     season = int(file_info.get('season', 1) or 1)
@@ -7461,7 +7483,7 @@ def start_flask_app():
         if is_packaged:
             logging.info("🎁 检测到打包环境，禁用调试模式")
 
-        app.run(debug=debug_mode, port=available_port, host='0.0.0.0', threaded=True)
+        app.run(debug=debug_mode, port=available_port, host='0.0.0.0', threaded=True, use_reloader=False)
 
     except OSError as e:
         if "Address already in use" in str(e):

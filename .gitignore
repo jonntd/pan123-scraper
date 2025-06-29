@@ -8,3 +8,4 @@
 /build/
 *.log.*
 /restart.log
+rename_data_backup_2*.json
