@@ -68,6 +68,11 @@ EXTRACTION_PROMPT = """
 3. **TMDB ID直接匹配**：如果文件名包含[tmdbid=数字]，直接使用该ID，不要搜索其他电影
 4. **年份信息严格遵守**：文件名中的年份信息必须严格遵守，不要匹配年份差异过大的电影
 5. **标题准确性**：优先保持原始中文标题，不要随意"翻译"为英文
+6. **🎯 动画角色识别**：如果文件名包含特定动画角色名称，必须正确识别所属系列：
+   - 基尔兽、大耳兽、古拉兽、亚古兽、加布兽等 → 数码宝贝系列
+   - 皮卡丘、小火龙、杰尼龟等 → 宝可梦系列
+   - 路飞、索隆、娜美等 → 海贼王系列
+   - 鸣人、佐助、小樱等 → 火影忍者系列
 **处理步骤（对每个文件名重复执行）：**
 1.  **文件名解析与信息提取：**
     *   **核心原则：** 尽最大可能识别并移除所有非标题的技术性后缀、前缀及中间标记，提取出最可能、最简洁的原始标题部分。
@@ -1971,6 +1976,27 @@ class QPSLimiter:
             self.last_request_time = time.time()
 
 
+def limit_path_depth(file_path, max_depth=3):
+    """
+    限制文件路径最多显示指定层数（从末尾开始计算）
+
+    Args:
+        file_path (str): 完整的文件路径
+        max_depth (int): 最大显示层数，默认为3
+
+    Returns:
+        str: 限制层数后的路径
+    """
+    if not file_path:
+        return file_path
+
+    path_parts = file_path.split('/')
+    if len(path_parts) > max_depth:
+        return '/'.join(path_parts[-max_depth:])
+    else:
+        return file_path
+
+
 def initialize_qps_limiters():
     """
     初始化各种API的QPS限制器
@@ -2242,10 +2268,12 @@ def get_file_list_from_cloud(parent_file_id: int, limit: int, search_data=None, 
             # 获取当前文件夹的路径前缀
             current_path_prefix = get_folder_full_path(parent_file_id)
 
-            # 为每个文件和文件夹添加 file_name 字段（完整路径）
+            # 为每个文件和文件夹添加 file_name 字段（完整路径，限制最多倒数三层）
             if "fileList" in result:
                 for item in result["fileList"]:
-                    item['file_name'] = os.path.join(current_path_prefix, item['filename']) if current_path_prefix else item['filename']
+                    full_path = os.path.join(current_path_prefix, item['filename']) if current_path_prefix else item['filename']
+                    # 限制路径最多显示倒数三层
+                    item['file_name'] = limit_path_depth(full_path, 3)
 
             return result
         except requests.exceptions.RequestException as e:
@@ -2409,7 +2437,10 @@ def get_video_files_recursively(folder_id, file_list, current_path="", depth=0, 
                 bytes_value = file_item['size']
                 gb_value = bytes_value / gb_in_bytes
                 # 构建完整的文件路径
-                file_path = os.path.join(current_path, file_item['filename']) if current_path else file_item['filename']
+                full_file_path = os.path.join(current_path, file_item['filename']) if current_path else file_item['filename']
+
+                # 限制路径最多显示倒数三层
+                file_path = limit_path_depth(full_file_path, 3)
 
                 # 创建增强的文件项，保留原有信息并添加计算字段
                 enhanced_file_item = file_item.copy()
@@ -3775,7 +3806,6 @@ def evaluate_tmdb_match_quality(movie_info, tmdb_result):
         tmdb_title = str(tmdb_result.get('title') or tmdb_result.get('name', '')).lower().strip()
 
         if movie_title and tmdb_title:
-            # 简单的标题匹配逻辑
             if movie_title == tmdb_title:
                 score += 40
                 reasons.append("标题完全匹配")
@@ -4337,11 +4367,11 @@ def extract_movie_name_and_info(chunk):
             }
 
         try:
-            # 🎯 检查是否包含TMDB ID，如果有则直接使用
+            # 🎯 检查是否包含TMDB ID，如果有则优先验证但仍进行搜索
             tmdb_id = file_info.get('tmdb_id', '')
             if tmdb_id and tmdb_id.isdigit():
-                logging.info(f"🎯 发现TMDB ID: {tmdb_id}，直接使用而不搜索")
-                # 从TMDB API获取详细信息而不是使用AI提取的可能不准确的信息
+                logging.info(f"🎯 发现TMDB ID: {tmdb_id}，将进行搜索验证")
+                # 从TMDB API获取详细信息进行验证
                 media_type = file_info.get('media_type', 'movie')
 
                 try:
@@ -4358,27 +4388,33 @@ def extract_movie_name_and_info(chunk):
 
                     response = requests.get(url, params=params, timeout=TMDB_API_TIMEOUT)
                     response.raise_for_status()
-                    tmdb_result = response.json()
+                    tmdb_candidate = response.json()
 
-                    logging.info(f"✅ 使用TMDB ID {tmdb_id} 构建结果: {tmdb_result.get('name') or tmdb_result.get('title', 'Unknown')}")
-                except Exception as e:
-                    logging.warning(f"⚠️ 无法从TMDB API获取ID {tmdb_id} 的详细信息: {e}")
-                    # 回退到使用AI提取的信息
-                    title_value = file_info.get('title', 'Unknown')
-                    tmdb_result = {
-                        'id': int(tmdb_id),
-                        'media_type': media_type
-                    }
+                    # 验证这个TMDB ID是否与文件信息匹配
+                    candidate_title = tmdb_candidate.get('name') or tmdb_candidate.get('title', '')
+                    file_title = file_info.get('title', '')
 
-                    if media_type in ['tv', 'tv_show', 'anime']:
-                        tmdb_result['name'] = title_value
-                        tmdb_result['first_air_date'] = file_info.get('year', '') + '-01-01' if file_info.get('year') else ''
+                    # 简单的标题匹配验证
+                    if candidate_title and file_title:
+                        title_similarity = len(set(candidate_title.lower().split()) & set(file_title.lower().split()))
+                        if title_similarity >= 1:  # 至少有一个共同词汇
+                            logging.info(f"✅ TMDB ID {tmdb_id} 验证通过: {candidate_title}")
+                            tmdb_result = tmdb_candidate
+                        else:
+                            logging.warning(f"⚠️ TMDB ID {tmdb_id} 验证失败，标题不匹配: '{candidate_title}' vs '{file_title}'，将进行搜索")
+                            tmdb_result = None
                     else:
-                        tmdb_result['title'] = title_value
-                        tmdb_result['release_date'] = file_info.get('year', '') + '-01-01' if file_info.get('year') else ''
+                        logging.info(f"✅ 使用TMDB ID {tmdb_id}: {candidate_title}")
+                        tmdb_result = tmdb_candidate
 
-                    tmdb_result['original_title'] = file_info.get('original_title', '')
+                except Exception as e:
+                    logging.warning(f"⚠️ 无法验证TMDB ID {tmdb_id}: {e}，将进行搜索")
+                    tmdb_result = None
             else:
+                tmdb_result = None
+
+            # 如果没有有效的TMDB结果，进行搜索
+            if not tmdb_result:
                 # 使用增强版TMDB搜索函数
                 logging.info(f"🔍 开始TMDB搜索: {file_info.get('title', 'Unknown')}")
                 tmdb_result = search_movie_in_tmdb_enhanced(file_info, max_strategies=5)
@@ -5622,12 +5658,11 @@ def get_folder_grouping_analysis_internal(video_files, folder_id, log_func=None)
             all_enhanced_groups = []
 
             # 使用配置的批处理大小
-            batch_size = CHUNK_SIZE
-            log_func(f"📦 使用批处理大小: {batch_size} 个文件/批")
+            log_func(f"📦 使用批处理大小: {CHUNK_SIZE} 个文件/批")
 
             # 🚀 简化策略：直接按文件数量分批处理
-            if len(video_files) > batch_size:
-                batches = split_files_into_batches(video_files, batch_size)
+            if len(video_files) > CHUNK_SIZE:
+                batches = split_files_into_batches(video_files, CHUNK_SIZE)
                 log_func(f"📦 分批处理: {len(batches)} 批，减少API调用次数")
 
                 for i, batch_files in enumerate(batches):
