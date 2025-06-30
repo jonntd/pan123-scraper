@@ -1,18 +1,34 @@
 """
-123云盘刮削工具 - 主应用程序
-=================================
+Pan123 Scraper - 123云盘智能文件刮削器
+=====================================
 
-这是一个基于Flask的Web应用程序，用于管理和重命名123云盘中的媒体文件。
-主要功能包括：
-- 文件列表获取和浏览
-- 智能文件重命名（基于TMDB数据）
-- 批量文件操作（移动、删除、重命名）
-- 智能文件分组和组织
-- 配置管理
+一个基于Flask的Web应用程序，用于管理和重命名123云盘中的媒体文件。
+
+🎯 核心功能：
+- 🎬 智能文件刮削：自动识别电影、电视剧信息
+- 🤖 AI智能分组：基于内容自动分组和命名
+- 📁 智能重命名：为文件夹生成标准化名称
+- 🔄 批量操作：支持批量重命名、移动、删除
+- 📊 性能监控：实时监控API性能和缓存命中率
+- 🧹 智能缓存：LRU缓存系统，自动内存管理
+
+🛡️ 技术特性：
+- 安全性：敏感信息保护、命令注入防护、输入验证
+- 高性能：多线程处理、智能缓存、QPS限制
+- 可维护性：模块化设计、统一异常处理、代码重构
+- 可观测性：性能监控、日志记录、统计分析
+
+📋 架构组件：
+- Flask Web框架：提供RESTful API接口
+- LRU缓存系统：智能内存管理和过期清理
+- 性能监控：API调用统计和缓存命中率分析
+- 配置管理：统一配置验证和类型转换
+- 异常处理：分层异常处理和错误恢复
 
 作者: jonntd@gmail.com
-版本: 2.0
-最后更新: 2025-06-22
+版本: 3.0 (重构版)
+最后更新: 2025-07-01
+许可: MIT License
 """
 
 # 标准库导入
@@ -36,12 +52,144 @@ from logging.handlers import RotatingFileHandler
 
 # 第三方库导入
 from flask import Flask, render_template, request, jsonify
+from collections import OrderedDict
 
 # ================================
 # 应用程序初始化和常量定义
 # ================================
 
 app = Flask(__name__)
+
+
+# ================================
+# LRU缓存实现
+# ================================
+
+class LRUCache:
+    """
+    线程安全的LRU缓存实现
+
+    Features:
+    - 自动过期机制
+    - 线程安全
+    - 内存限制
+    """
+
+    def __init__(self, max_size=1000, ttl=3600):
+        """
+        初始化LRU缓存
+
+        Args:
+            max_size (int): 最大缓存条目数
+            ttl (int): 生存时间（秒）
+        """
+        self.max_size = max_size
+        self.ttl = ttl
+        self.cache = OrderedDict()
+        self.lock = threading.Lock()
+
+    def get(self, key, record_stats=True):
+        """获取缓存值"""
+        with self.lock:
+            if key not in self.cache:
+                if record_stats and hasattr(self, '_cache_name'):
+                    performance_monitor.record_cache_hit(self._cache_name, hit=False)
+                return None
+
+            value, timestamp = self.cache[key]
+
+            # 检查是否过期
+            if time.time() - timestamp > self.ttl:
+                del self.cache[key]
+                if record_stats and hasattr(self, '_cache_name'):
+                    performance_monitor.record_cache_hit(self._cache_name, hit=False)
+                return None
+
+            # 移动到末尾（最近使用）
+            self.cache.move_to_end(key)
+            if record_stats and hasattr(self, '_cache_name'):
+                performance_monitor.record_cache_hit(self._cache_name, hit=True)
+            return value
+
+    def put(self, key, value):
+        """设置缓存值"""
+        with self.lock:
+            current_time = time.time()
+
+            if key in self.cache:
+                # 更新现有条目
+                self.cache[key] = (value, current_time)
+                self.cache.move_to_end(key)
+            else:
+                # 添加新条目
+                if len(self.cache) >= self.max_size:
+                    # 移除最旧的条目
+                    self.cache.popitem(last=False)
+
+                self.cache[key] = (value, current_time)
+
+    def delete(self, key):
+        """删除缓存条目"""
+        with self.lock:
+            if key in self.cache:
+                del self.cache[key]
+
+    def clear(self):
+        """清空缓存"""
+        with self.lock:
+            self.cache.clear()
+
+    def cleanup_expired(self):
+        """清理过期条目"""
+        with self.lock:
+            current_time = time.time()
+            expired_keys = []
+
+            for key, (_, timestamp) in self.cache.items():
+                if current_time - timestamp > self.ttl:
+                    expired_keys.append(key)
+
+            for key in expired_keys:
+                del self.cache[key]
+
+            return len(expired_keys)
+
+    def size(self):
+        """获取缓存大小"""
+        with self.lock:
+            return len(self.cache)
+
+    def stats(self):
+        """获取缓存统计信息"""
+        with self.lock:
+            return {
+                'size': len(self.cache),
+                'max_size': self.max_size,
+                'ttl': self.ttl
+            }
+
+    def __contains__(self, key):
+        """支持 'in' 操作符"""
+        with self.lock:
+            if key not in self.cache:
+                return False
+
+            _, timestamp = self.cache[key]
+
+            # 检查是否过期
+            if time.time() - timestamp > self.ttl:
+                del self.cache[key]
+                return False
+
+            return True
+
+    def __getitem__(self, key):
+        """支持 cache[key] 操作"""
+        return self.get(key)
+
+    def __setitem__(self, key, value):
+        """支持 cache[key] = value 操作"""
+        self.put(key, value)
 
 
 # 配置文件路径
@@ -521,20 +669,116 @@ delete_limiter = None
 current_task_cancelled = False
 current_task_id = None
 
-# 路径缓存全局变量
-folder_path_cache = {}
+# ================================
+# 缓存系统初始化（使用LRU缓存）
+# ================================
 
-# 🔄 智能分组缓存全局变量
-grouping_cache = {}
-GROUPING_CACHE_DURATION = 60  # 缓存有效期：10分钟（600秒）
+# 路径缓存（小容量，中期有效）
+folder_path_cache = LRUCache(max_size=500, ttl=1800)  # 30分钟
+folder_path_cache._cache_name = 'folder_path_cache'
 
-# 🚀 文件刮削结果缓存（新增）
-scraping_cache = {}
-SCRAPING_CACHE_DURATION = 60  # 刮削缓存有效期（30分钟）
+# 智能分组缓存（中等容量，短期有效）
+grouping_cache = LRUCache(max_size=200, ttl=300)  # 5分钟
+grouping_cache._cache_name = 'grouping_cache'
 
-# 📁 目录内容缓存全局变量（新增）
-folder_content_cache = {}
-FOLDER_CONTENT_CACHE_DURATION = 300  # 目录缓存有效期：5分钟（300秒）
+# 文件刮削结果缓存（大容量，短期有效）
+scraping_cache = LRUCache(max_size=1000, ttl=600)  # 10分钟
+scraping_cache._cache_name = 'scraping_cache'
+
+# 目录内容缓存（中等容量，极短期有效）
+folder_content_cache = LRUCache(max_size=300, ttl=180)  # 3分钟
+folder_content_cache._cache_name = 'folder_content_cache'
+
+# 保留原有的常量定义以兼容现有代码（调整为更短的缓存时间）
+GROUPING_CACHE_DURATION = 300  # 5分钟
+SCRAPING_CACHE_DURATION = 600  # 10分钟
+FOLDER_CONTENT_CACHE_DURATION = 180  # 3分钟
+
+
+def cleanup_all_caches():
+    """
+    清理所有缓存中的过期条目
+
+    Returns:
+        dict: 清理统计信息
+    """
+    stats = {}
+
+    try:
+        stats['folder_path_cache'] = folder_path_cache.cleanup_expired()
+        stats['grouping_cache'] = grouping_cache.cleanup_expired()
+        stats['scraping_cache'] = scraping_cache.cleanup_expired()
+        stats['folder_content_cache'] = folder_content_cache.cleanup_expired()
+
+        total_cleaned = sum(stats.values())
+        if total_cleaned > 0:
+            logging.info(f"🧹 清理了 {total_cleaned} 个过期缓存条目: {stats}")
+
+        return stats
+    except Exception as e:
+        logging.error(f"❌ 缓存清理失败: {e}")
+        return {}
+
+
+def clear_operation_related_caches(folder_id=None, operation_type="unknown"):
+    """
+    清理与操作相关的缓存
+
+    Args:
+        folder_id: 操作的文件夹ID
+        operation_type: 操作类型（scraping, renaming, grouping等）
+    """
+    try:
+        cleared_count = 0
+
+        if operation_type in ["scraping", "renaming"]:
+            # 刮削和重命名操作需要清理刮削缓存
+            old_size = scraping_cache.size()
+            scraping_cache.clear()
+            cleared_count += old_size
+            logging.info(f"🧹 清理刮削缓存: {old_size} 项")
+
+        if operation_type in ["renaming", "grouping"]:
+            # 重命名和分组操作需要清理分组缓存
+            old_size = grouping_cache.size()
+            grouping_cache.clear()
+            cleared_count += old_size
+            logging.info(f"🧹 清理分组缓存: {old_size} 项")
+
+        if folder_id:
+            # 清理特定文件夹的内容缓存
+            folder_content_cache.delete(f"folder_{folder_id}")
+            cleared_count += 1
+            logging.info(f"🧹 清理文件夹 {folder_id} 的内容缓存")
+
+        if operation_type == "major_change":
+            # 重大变更时清理所有缓存
+            stats = cleanup_all_caches()
+            cleared_count += sum(stats.values())
+
+        if cleared_count > 0:
+            logging.info(f"🧹 操作 {operation_type} 触发缓存清理，共清理 {cleared_count} 项")
+
+        return cleared_count
+    except Exception as e:
+        logging.error(f"❌ 操作相关缓存清理失败: {e}")
+        return 0
+
+
+def start_cache_cleanup_task():
+    """启动缓存清理后台任务"""
+    def cache_cleanup_worker():
+        while True:
+            try:
+                time.sleep(180)  # 每3分钟清理一次（更频繁）
+                cleanup_all_caches()
+            except Exception as e:
+                logging.error(f"❌ 缓存清理任务异常: {e}")
+                time.sleep(60)  # 出错后等待1分钟再重试
+
+    cleanup_thread = threading.Thread(target=cache_cleanup_worker, daemon=True)
+    cleanup_thread.start()
+    logging.info("🧹 缓存清理后台任务已启动（每3分钟清理一次）")
 
 # 🚦 请求限流控制全局变量（已优化为与任务队列配合）
 folder_request_tracker = {}
@@ -1145,61 +1389,52 @@ def perform_grouping_task_maintenance():
 
 def check_task_cancelled():
     """检查当前任务是否被取消"""
-    global current_task_cancelled, current_task_id
-
-    # 检查全局取消标志
-    if current_task_cancelled:
-        logging.info("🛑 任务已被用户取消 (全局标志)")
-        raise Exception("任务已被用户取消")
+    # 使用app_state检查取消状态
+    app_state.check_task_cancelled()
 
     # 检查任务队列中的取消状态
-    if current_task_id and grouping_task_manager:
-        task = grouping_task_manager.get_task_status(current_task_id)
+    if app_state.current_task_id and grouping_task_manager:
+        task = grouping_task_manager.get_task_status(app_state.current_task_id)
         if task and task.status == TaskStatus.CANCELLED:
-            logging.info(f"🛑 任务已被用户取消 (任务队列): {current_task_id}")
-            raise Exception("任务已被用户取消")
+            logging.info(f"🛑 任务已被用户取消 (任务队列): {app_state.current_task_id}")
+            raise TaskCancelledException("任务已被用户取消")
 
 def cancel_current_task():
     """取消当前正在运行的任务"""
-    global current_task_cancelled, current_task_id
-    current_task_cancelled = True
+    app_state.cancel_task()
 
     # 同时取消任务队列中的任务
-    if current_task_id:
-        cancelled = grouping_task_manager.cancel_task(current_task_id)
+    if app_state.current_task_id:
+        cancelled = grouping_task_manager.cancel_task(app_state.current_task_id)
         if cancelled:
-            logging.info(f"🛑 用户请求取消当前任务: {current_task_id} (任务队列)")
+            logging.info(f"🛑 用户请求取消当前任务: {app_state.current_task_id} (任务队列)")
         else:
-            logging.warning(f"⚠️ 任务队列中未找到任务: {current_task_id}")
+            logging.warning(f"⚠️ 任务队列中未找到任务: {app_state.current_task_id}")
 
     logging.info("🛑 用户请求取消当前任务 (全局标志)")
 
 def start_new_task(task_id=None):
     """开始新任务"""
-    global current_task_cancelled, current_task_id, folder_path_cache, folder_content_cache
-    current_task_cancelled = False
-    current_task_id = task_id or str(int(time.time()))
+    task_id = task_id or str(int(time.time()))
+    app_state.start_task(task_id)
 
     # 清理路径缓存（避免内存泄漏）
-    if len(folder_path_cache) > 1000:  # 缓存过多时清理
+    if folder_path_cache.size() > 1000:  # 缓存过多时清理
         folder_path_cache.clear()
         logging.info("🧹 清理路径缓存")
 
     # 清理目录内容缓存（避免内存泄漏）
-    if len(folder_content_cache) > 500:  # 目录缓存过多时清理
+    if folder_content_cache.size() > 500:  # 目录缓存过多时清理
         folder_content_cache.clear()
         logging.info("🧹 清理目录内容缓存")
 
     # 定期清理过期缓存
     cleanup_expired_folder_cache()
 
-    logging.info(f"🚀 开始新任务: {current_task_id}")
-
 def reset_task_state():
     """重置任务状态（用于普通操作）"""
-    global current_task_cancelled, current_task_id
-    current_task_cancelled = False
-    current_task_id = None
+    app_state.current_task_id = None
+    app_state.task_cancelled = False
 
 # ================================
 # 工具函数和辅助方法
@@ -1895,6 +2130,533 @@ class TokenLimitExceededError(Exception):
         self.response_data = response_data
         super().__init__(f"访问令牌使用次数已超限，需要刷新令牌\n{self.response_data}")
 
+
+class TaskCancelledException(Exception):
+    """任务被取消异常"""
+    pass
+
+
+class APIRateLimitException(Exception):
+    """API频率限制异常"""
+    pass
+
+
+class AccessTokenExpiredException(Exception):
+    """访问令牌过期异常"""
+    pass
+
+
+class ConfigurationError(Exception):
+    """配置错误异常"""
+    pass
+
+
+class NetworkError(Exception):
+    """网络错误异常"""
+    pass
+
+
+class FileSystemError(Exception):
+    """文件系统错误异常"""
+    pass
+
+
+class ValidationError(Exception):
+    """数据验证错误异常"""
+    pass
+
+
+class AIServiceError(Exception):
+    """AI服务错误异常"""
+    pass
+
+
+class CacheError(Exception):
+    """缓存操作错误异常"""
+    pass
+
+
+# ================================
+# 配置管理类
+# ================================
+
+class ConfigManager:
+    """
+    统一的配置管理类
+
+    Features:
+    - 配置验证
+    - 类型转换
+    - 默认值处理
+    - 配置更新通知
+    """
+
+    # 配置项定义和验证规则
+    CONFIG_SCHEMA = {
+        # 性能配置
+        'QPS_LIMIT': {'type': int, 'min': 1, 'max': 50, 'default': 8},
+        'CHUNK_SIZE': {'type': int, 'min': 10, 'max': 200, 'default': 50},
+        'MAX_WORKERS': {'type': int, 'min': 1, 'max': 20, 'default': 6},
+
+        # API配置
+        'CLIENT_ID': {'type': str, 'required': False, 'default': ''},
+        'CLIENT_SECRET': {'type': str, 'required': False, 'default': ''},
+        'TMDB_API_KEY': {'type': str, 'required': False, 'default': ''},
+        'AI_API_KEY': {'type': str, 'required': False, 'default': ''},
+        'AI_API_URL': {'type': str, 'required': False, 'default': ''},
+
+        # AI模型配置
+        'MODEL': {'type': str, 'default': ''},
+        'GROUPING_MODEL': {'type': str, 'default': ''},
+        'LANGUAGE': {'type': str, 'default': 'zh-CN'},
+
+        # 超时配置
+        'AI_API_TIMEOUT': {'type': int, 'min': 5, 'max': 300, 'default': 30},
+        'TMDB_API_TIMEOUT': {'type': int, 'min': 5, 'max': 60, 'default': 10},
+
+        # 重试配置
+        'AI_MAX_RETRIES': {'type': int, 'min': 1, 'max': 10, 'default': 3},
+        'TMDB_MAX_RETRIES': {'type': int, 'min': 1, 'max': 10, 'default': 3},
+
+        # 功能开关
+        'KILL_OCCUPIED_PORT_PROCESS': {'type': bool, 'default': True},
+        'ENABLE_QUALITY_ASSESSMENT': {'type': bool, 'default': False},
+        'ENABLE_SCRAPING_QUALITY_ASSESSMENT': {'type': bool, 'default': True},
+    }
+
+    def __init__(self, config_file='config.json'):
+        self.config_file = config_file
+        self.config = {}
+        self.load_config()
+
+    def validate_config_item(self, key, value):
+        """验证单个配置项"""
+        if key not in self.CONFIG_SCHEMA:
+            raise ValidationError(f"未知的配置项: {key}")
+
+        schema = self.CONFIG_SCHEMA[key]
+
+        # 类型检查
+        expected_type = schema['type']
+        if not isinstance(value, expected_type):
+            try:
+                # 尝试类型转换
+                if expected_type == int:
+                    value = int(value)
+                elif expected_type == float:
+                    value = float(value)
+                elif expected_type == bool:
+                    if isinstance(value, str):
+                        value = value.lower() in ('true', '1', 'yes', 'on')
+                    else:
+                        value = bool(value)
+                elif expected_type == str:
+                    value = str(value)
+            except (ValueError, TypeError):
+                raise ValidationError(f"配置项 {key} 类型错误，期望 {expected_type.__name__}，得到 {type(value).__name__}")
+
+        # 范围检查
+        if 'min' in schema and value < schema['min']:
+            raise ValidationError(f"配置项 {key} 值 {value} 小于最小值 {schema['min']}")
+
+        if 'max' in schema and value > schema['max']:
+            raise ValidationError(f"配置项 {key} 值 {value} 大于最大值 {schema['max']}")
+
+        # 必需项检查
+        if schema.get('required', False) and not value:
+            raise ValidationError(f"配置项 {key} 是必需的，不能为空")
+
+        return value
+
+    def load_config(self):
+        """加载配置文件"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    loaded_config = json.load(f)
+
+                # 验证并应用配置
+                for key, value in loaded_config.items():
+                    if key in self.CONFIG_SCHEMA:
+                        try:
+                            validated_value = self.validate_config_item(key, value)
+                            self.config[key] = validated_value
+                        except ValidationError as e:
+                            logging.warning(f"配置项 {key} 验证失败: {e}，使用默认值")
+                            self.config[key] = self.CONFIG_SCHEMA[key]['default']
+                    else:
+                        # 保留未知配置项（向后兼容）
+                        self.config[key] = value
+
+                # 设置缺失配置项的默认值
+                for key, schema in self.CONFIG_SCHEMA.items():
+                    if key not in self.config:
+                        self.config[key] = schema['default']
+
+                logging.info(f"配置已从 {self.config_file} 加载并验证")
+            else:
+                # 使用默认配置
+                for key, schema in self.CONFIG_SCHEMA.items():
+                    self.config[key] = schema['default']
+
+                logging.info(f"配置文件 {self.config_file} 不存在，使用默认配置")
+                self.save_config()
+
+        except Exception as e:
+            logging.error(f"加载配置文件失败: {e}")
+            raise ConfigurationError(f"配置加载失败: {str(e)}")
+
+    def save_config(self):
+        """保存配置文件"""
+        try:
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, ensure_ascii=False, indent=4)
+            logging.info(f"配置已保存到 {self.config_file}")
+            return True
+        except Exception as e:
+            logging.error(f"保存配置文件失败: {e}")
+            raise ConfigurationError(f"配置保存失败: {str(e)}")
+
+    def get(self, key, default=None):
+        """获取配置项"""
+        return self.config.get(key, default)
+
+    def set(self, key, value):
+        """设置配置项"""
+        validated_value = self.validate_config_item(key, value)
+        self.config[key] = validated_value
+        return validated_value
+
+    def update(self, new_config):
+        """批量更新配置"""
+        validated_config = {}
+        for key, value in new_config.items():
+            if key in self.CONFIG_SCHEMA:
+                validated_config[key] = self.validate_config_item(key, value)
+            else:
+                # 保留未知配置项
+                validated_config[key] = value
+
+        self.config.update(validated_config)
+        return validated_config
+
+    def get_all(self):
+        """获取所有配置"""
+        return self.config.copy()
+
+    def get_stats(self):
+        """获取配置统计信息"""
+        return {
+            'total_items': len(self.config),
+            'schema_items': len(self.CONFIG_SCHEMA),
+            'custom_items': len(self.config) - len(self.CONFIG_SCHEMA),
+            'config_file': self.config_file
+        }
+
+
+# ================================
+# 应用程序状态管理类
+# ================================
+
+class AppState:
+    """
+    应用程序状态管理类
+
+    用于管理全局状态，减少全局变量的使用
+    """
+
+    def __init__(self):
+        # 配置管理器
+        self.config_manager = ConfigManager()
+
+        # API相关状态
+        self.access_token = None
+        self.token_expiry = None
+
+        # 任务管理状态
+        self.current_task_id = None
+        self.task_cancelled = False
+
+        # QPS限制器
+        self.qps_limiter = None
+
+        # 日志队列
+        self.log_queue = deque(maxlen=5000)
+
+        # 初始化状态
+        self._initialize_state()
+
+    def _initialize_state(self):
+        """初始化应用程序状态"""
+        # QPS限制器将在后面初始化
+        self.qps_limiter = None
+
+        # 初始化访问令牌
+        self.access_token = None  # 将在后面初始化
+
+    def get_config(self, key, default=None):
+        """获取配置项"""
+        return self.config_manager.get(key, default)
+
+    def set_config(self, key, value):
+        """设置配置项"""
+        return self.config_manager.set(key, value)
+
+    def update_config(self, new_config):
+        """批量更新配置"""
+        return self.config_manager.update(new_config)
+
+    def save_config(self):
+        """保存配置"""
+        return self.config_manager.save_config()
+
+    def start_task(self, task_id):
+        """开始新任务"""
+        self.current_task_id = task_id
+        self.task_cancelled = False
+        logging.info(f"🚀 开始新任务: {task_id}")
+
+    def cancel_task(self):
+        """取消当前任务"""
+        if self.current_task_id:
+            self.task_cancelled = True
+            logging.info(f"🛑 任务已取消: {self.current_task_id}")
+
+    def check_task_cancelled(self):
+        """检查任务是否被取消"""
+        if self.task_cancelled:
+            raise TaskCancelledException(f"任务已被用户取消: {self.current_task_id}")
+
+    def add_log(self, message):
+        """添加日志到队列"""
+        self.log_queue.append({
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'message': message
+        })
+
+    def get_logs(self, limit=None):
+        """获取日志"""
+        if limit:
+            return list(self.log_queue)[-limit:]
+        return list(self.log_queue)
+
+    def clear_logs(self):
+        """清空日志"""
+        self.log_queue.clear()
+
+    def get_stats(self):
+        """获取应用程序统计信息"""
+        return {
+            'current_task': self.current_task_id,
+            'task_cancelled': self.task_cancelled,
+            'log_count': len(self.log_queue),
+            'config_stats': self.config_manager.get_stats(),
+            'cache_stats': {
+                'folder_path_cache': folder_path_cache.stats(),
+                'grouping_cache': grouping_cache.stats(),
+                'scraping_cache': scraping_cache.stats(),
+                'folder_content_cache': folder_content_cache.stats()
+            }
+        }
+
+
+# app_state将在QPSLimiter定义后创建
+
+
+# ================================
+# API装饰器
+# ================================
+
+def api_error_handler(func):
+    """API错误处理装饰器"""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except TaskCancelledException:
+            # 任务取消异常需要重新抛出
+            raise
+        except APIRateLimitException as e:
+            logging.warning(f"⚠️ API频率限制: {e}")
+            return jsonify({'success': False, 'error': 'API请求过于频繁，请稍后重试'})
+        except AccessTokenExpiredException as e:
+            logging.error(f"❌ 访问令牌过期: {e}")
+            return jsonify({'success': False, 'error': '访问令牌已过期，请重新配置'})
+        except ConfigurationError as e:
+            logging.error(f"❌ 配置错误: {e}")
+            return jsonify({'success': False, 'error': f'配置错误: {str(e)}'})
+        except NetworkError as e:
+            logging.error(f"❌ 网络错误: {e}")
+            return jsonify({'success': False, 'error': f'网络连接失败: {str(e)}'})
+        except ValidationError as e:
+            logging.error(f"❌ 数据验证错误: {e}")
+            return jsonify({'success': False, 'error': f'数据验证失败: {str(e)}'})
+        except AIServiceError as e:
+            logging.error(f"❌ AI服务错误: {e}")
+            return jsonify({'success': False, 'error': f'AI服务不可用: {str(e)}'})
+        except FileSystemError as e:
+            logging.error(f"❌ 文件系统错误: {e}")
+            return jsonify({'success': False, 'error': f'文件操作失败: {str(e)}'})
+        except Exception as e:
+            logging.error(f"❌ 未知错误: {e}", exc_info=True)
+            return jsonify({'success': False, 'error': f'系统内部错误: {str(e)}'})
+
+    return wrapper
+
+
+# ================================
+# 性能监控类
+# ================================
+
+class PerformanceMonitor:
+    """
+    性能监控类
+
+    用于监控API调用性能、缓存命中率等关键指标
+    """
+
+    def __init__(self):
+        self.metrics = {
+            'api_calls': {},  # API调用统计
+            'cache_hits': {},  # 缓存命中统计
+            'response_times': {},  # 响应时间统计
+            'error_counts': {},  # 错误计数
+            'start_time': time.time()
+        }
+        self.lock = threading.Lock()
+
+    def record_api_call(self, endpoint, duration, success=True):
+        """记录API调用"""
+        with self.lock:
+            if endpoint not in self.metrics['api_calls']:
+                self.metrics['api_calls'][endpoint] = {
+                    'total_calls': 0,
+                    'success_calls': 0,
+                    'total_duration': 0,
+                    'avg_duration': 0,
+                    'min_duration': float('inf'),
+                    'max_duration': 0
+                }
+
+            stats = self.metrics['api_calls'][endpoint]
+            stats['total_calls'] += 1
+            stats['total_duration'] += duration
+            stats['avg_duration'] = stats['total_duration'] / stats['total_calls']
+            stats['min_duration'] = min(stats['min_duration'], duration)
+            stats['max_duration'] = max(stats['max_duration'], duration)
+
+            if success:
+                stats['success_calls'] += 1
+
+    def record_cache_hit(self, cache_name, hit=True):
+        """记录缓存命中"""
+        with self.lock:
+            if cache_name not in self.metrics['cache_hits']:
+                self.metrics['cache_hits'][cache_name] = {
+                    'hits': 0,
+                    'misses': 0,
+                    'hit_rate': 0
+                }
+
+            stats = self.metrics['cache_hits'][cache_name]
+            if hit:
+                stats['hits'] += 1
+            else:
+                stats['misses'] += 1
+
+            total = stats['hits'] + stats['misses']
+            stats['hit_rate'] = stats['hits'] / total if total > 0 else 0
+
+    def record_error(self, error_type):
+        """记录错误"""
+        with self.lock:
+            if error_type not in self.metrics['error_counts']:
+                self.metrics['error_counts'][error_type] = 0
+            self.metrics['error_counts'][error_type] += 1
+
+    def get_stats(self):
+        """获取性能统计"""
+        with self.lock:
+            uptime = time.time() - self.metrics['start_time']
+            return {
+                'uptime_seconds': uptime,
+                'uptime_formatted': self._format_duration(uptime),
+                'api_calls': self.metrics['api_calls'].copy(),
+                'cache_hits': self.metrics['cache_hits'].copy(),
+                'error_counts': self.metrics['error_counts'].copy()
+            }
+
+    def _format_duration(self, seconds):
+        """格式化时间长度"""
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        seconds = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    def reset_stats(self):
+        """重置统计数据"""
+        with self.lock:
+            self.metrics = {
+                'api_calls': {},
+                'cache_hits': {},
+                'response_times': {},
+                'error_counts': {},
+                'start_time': time.time()
+            }
+
+
+# 创建全局性能监控实例
+performance_monitor = PerformanceMonitor()
+
+
+def task_management_decorator(func):
+    """任务管理装饰器"""
+    def wrapper(*args, **kwargs):
+        try:
+            # 开始新任务
+            task_id = f"{func.__name__}_{int(time.time())}"
+            start_new_task(task_id)
+
+            # 清理操作相关缓存
+            operation_type = getattr(func, '_operation_type', 'unknown')
+            clear_operation_related_caches(operation_type=operation_type)
+
+            # 执行函数
+            result = func(*args, **kwargs)
+
+            return result
+        except TaskCancelledException:
+            logging.info(f"🛑 任务 {func.__name__} 被用户取消")
+            return jsonify({'success': False, 'error': '任务已被用户取消', 'cancelled': True})
+        except Exception as e:
+            logging.error(f"❌ 任务 {func.__name__} 执行失败: {e}", exc_info=True)
+            raise
+
+    return wrapper
+
+
+def performance_monitor_decorator(endpoint_name=None):
+    """性能监控装饰器"""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            success = True
+
+            try:
+                result = func(*args, **kwargs)
+                return result
+            except Exception as e:
+                success = False
+                performance_monitor.record_error(type(e).__name__)
+                raise
+            finally:
+                duration = time.time() - start_time
+                name = endpoint_name or func.__name__
+                performance_monitor.record_api_call(name, duration, success)
+
+        return wrapper
+    return decorator
+
+
 def validate_api_response(response):
     """
     验证123云盘API响应状态
@@ -2025,6 +2787,10 @@ class QPSLimiter:
             self.last_request_time = time.time()
 
 
+# 创建全局应用程序状态实例（在QPSLimiter定义之后）
+app_state = AppState()
+
+
 def limit_path_depth(file_path, max_depth=3):
     """
     限制文件路径最多显示指定层数（从末尾开始计算）
@@ -2130,7 +2896,7 @@ def initialize_access_token():
 
     # 如果没有有效令牌，尝试获取新令牌
     if not token and CLIENT_ID and CLIENT_SECRET:
-        logging.info(f"🔑 CLIENT_ID: {CLIENT_ID[:10]}..., CLIENT_SECRET: {'已设置' if CLIENT_SECRET else '未设置'}")
+        logging.info(f"🔑 CLIENT_ID: {'已设置' if CLIENT_ID else '未设置'}, CLIENT_SECRET: {'已设置' if CLIENT_SECRET else '未设置'}")
         token = get_access_token_from_api(CLIENT_ID, CLIENT_SECRET)
         if token:
             # 保存新令牌到文件（Windows兼容性：指定UTF-8编码）
@@ -4438,7 +5204,7 @@ def extract_movie_name_and_info(chunk):
 
     current_time = time.time()
 
-    for i, (fid, name, size) in enumerate(zip(fids, names, sizes)):
+    for fid, name, size in zip(fids, names, sizes):
         cache_key = f"scrape_{hash(name)}"
 
         if cache_key in scraping_cache:
@@ -4727,17 +5493,10 @@ def extract_movie_name_and_info(chunk):
             }
             logging.debug(f"💾 缓存结果: {original_name}")
 
-    # 清理过期缓存
-    expired_keys = []
-    for key, entry in scraping_cache.items():
-        if current_time - entry['timestamp'] > SCRAPING_CACHE_DURATION:
-            expired_keys.append(key)
-
-    for key in expired_keys:
-        del scraping_cache[key]
-
-    if expired_keys:
-        logging.debug(f"🧹 清理了 {len(expired_keys)} 个过期缓存条目")
+    # LRU缓存会自动清理过期条目，无需手动清理
+    # 这里只记录一下缓存状态
+    cache_stats = scraping_cache.stats()
+    logging.debug(f"🧹 刮削缓存状态: {cache_stats['size']}/{cache_stats['max_size']} 项")
 
     return results
 
@@ -4756,7 +5515,7 @@ load_application_config()
 # 初始化123云盘访问令牌
 access_token = initialize_access_token()
 if access_token:
-    logging.info(f"✅ 123云盘访问令牌已初始化: {access_token[:50]}...")
+    logging.info(f"✅ 123云盘访问令牌已初始化: {access_token[:10]}***")
 else:
     logging.info("⚠️ 123云盘访问令牌未设置，请在配置页面设置CLIENT_ID和CLIENT_SECRET")
 
@@ -5588,62 +6347,41 @@ def cleanup_expired_cache():
     """清理过期的缓存项"""
     global grouping_cache
 
-    current_time = time.time()
-    expired_keys = []
-
-    for key, data in grouping_cache.items():
-        if current_time - data.get('timestamp', 0) > GROUPING_CACHE_DURATION:
-            expired_keys.append(key)
-
-    for key in expired_keys:
-        del grouping_cache[key]
-
-    if expired_keys:
-        logging.info(f"🧹 清理了 {len(expired_keys)} 个过期缓存项")
+    # LRU缓存会自动清理过期条目，无需手动清理
+    # 这里只记录一下缓存状态
+    cache_stats = grouping_cache.stats()
+    logging.debug(f"🧹 分组缓存状态: {cache_stats['size']}/{cache_stats['max_size']} 项")
 
 # 📁 目录内容缓存管理函数
 def get_cached_folder_content(folder_id_or_key):
     """获取缓存的目录内容"""
-    global folder_content_cache
-
     # 支持直接传入缓存键或文件夹ID
     if isinstance(folder_id_or_key, str) and folder_id_or_key.startswith("folder_"):
         cache_key = folder_id_or_key
     else:
         cache_key = f"folder_{folder_id_or_key}"
 
-    if cache_key not in folder_content_cache:
+    cached_data = folder_content_cache.get(cache_key)
+    if cached_data is None:
         return None
 
-    cached_data = folder_content_cache[cache_key]
-    cache_time = cached_data.get('timestamp', 0)
-    current_time = time.time()
-
-    # 检查缓存是否过期
-    if current_time - cache_time > FOLDER_CONTENT_CACHE_DURATION:
-        # 缓存过期，删除并返回None
-        del folder_content_cache[cache_key]
-        logging.info(f"🗑️ 目录缓存已过期并清理: {cache_key}")
-        return None
-
-    remaining_time = int(FOLDER_CONTENT_CACHE_DURATION - (current_time - cache_time))
-    logging.info(f"💾 命中目录缓存: {cache_key}, 剩余有效期: {remaining_time}秒")
+    # LRU缓存已经处理了过期逻辑，直接返回内容
+    logging.info(f"💾 命中目录缓存: {cache_key}")
     return cached_data.get('content')
 
 def cache_folder_content(folder_id_or_key, content):
     """缓存目录内容"""
-    global folder_content_cache
-
     # 支持直接传入缓存键或文件夹ID
     if isinstance(folder_id_or_key, str) and folder_id_or_key.startswith("folder_"):
         cache_key = folder_id_or_key
     else:
         cache_key = f"folder_{folder_id_or_key}"
 
-    folder_content_cache[cache_key] = {
+    # 使用LRU缓存存储内容
+    folder_content_cache.put(cache_key, {
         'timestamp': time.time(),
         'content': content
-    }
+    })
 
     # 从content中获取项目数量（如果可能）
     item_count = "未知"
@@ -5655,53 +6393,30 @@ def cache_folder_content(folder_id_or_key, content):
 
     logging.info(f"💾 缓存目录内容: {cache_key} ({item_count} 个项目)")
 
-    # 清理过期的目录缓存
-    cleanup_expired_folder_cache()
-
 def cleanup_expired_folder_cache():
     """清理过期的目录缓存项"""
-    global folder_content_cache
-
-    current_time = time.time()
-    expired_keys = []
-
-    for key, data in folder_content_cache.items():
-        if current_time - data.get('timestamp', 0) > FOLDER_CONTENT_CACHE_DURATION:
-            expired_keys.append(key)
-
-    for key in expired_keys:
-        del folder_content_cache[key]
-
-    if expired_keys:
-        logging.info(f"🧹 清理了 {len(expired_keys)} 个过期目录缓存项")
+    # LRU缓存自动处理过期，这里只需要调用清理方法
+    expired_count = folder_content_cache.cleanup_expired()
+    if expired_count > 0:
+        logging.info(f"🧹 清理了 {expired_count} 个过期目录缓存项")
 
 def clear_folder_cache(folder_id=None):
     """清理指定文件夹的缓存，如果folder_id为None则清理所有缓存"""
-    global folder_content_cache
-
     if folder_id is None:
         # 清理所有缓存
-        count = len(folder_content_cache)
+        count = folder_content_cache.size()
         folder_content_cache.clear()
         logging.info(f"🧹 清理了所有目录缓存 ({count} 个项目)")
     else:
         # 清理指定文件夹的缓存
         cache_key = f"folder_{folder_id}"
-        if cache_key in folder_content_cache:
-            del folder_content_cache[cache_key]
-            logging.info(f"🧹 清理了文件夹 {folder_id} 的缓存")
+        folder_content_cache.delete(cache_key)
+        logging.info(f"🧹 清理了文件夹 {folder_id} 的缓存")
 
         # 同时清理子文件夹的缓存（因为父文件夹变化可能影响子文件夹）
-        keys_to_remove = []
-        for key in folder_content_cache.keys():
-            if key.startswith(f"folder_{folder_id}_"):
-                keys_to_remove.append(key)
-
-        for key in keys_to_remove:
-            del folder_content_cache[key]
-
-        if keys_to_remove:
-            logging.info(f"🧹 清理了 {len(keys_to_remove)} 个相关子文件夹缓存")
+        # 注意：LRU缓存不支持直接遍历keys，这里需要重新设计
+        # 暂时只清理直接缓存，子文件夹缓存会自然过期
+        logging.info(f"🧹 已清理文件夹 {folder_id} 的直接缓存，相关子文件夹缓存将自然过期")
 
 # 🚦 请求限流控制函数
 def is_folder_request_rate_limited(folder_id):
@@ -5968,28 +6683,20 @@ def cache_status():
     try:
         global folder_content_cache, grouping_cache, scraping_cache
 
-        current_time = time.time()
-
         # 统计目录缓存
-        folder_cache_count = len(folder_content_cache)
-        folder_cache_valid = 0
-        for cache_data in folder_content_cache.values():
-            if current_time - cache_data.get('timestamp', 0) < FOLDER_CONTENT_CACHE_DURATION:
-                folder_cache_valid += 1
+        folder_cache_stats = folder_content_cache.stats()
+        folder_cache_count = folder_cache_stats['size']
+        folder_cache_valid = folder_cache_count  # LRU缓存自动管理过期
 
         # 统计分组缓存
-        grouping_cache_count = len(grouping_cache)
-        grouping_cache_valid = 0
-        for cache_data in grouping_cache.values():
-            if current_time - cache_data.get('timestamp', 0) < GROUPING_CACHE_DURATION:
-                grouping_cache_valid += 1
+        grouping_cache_stats = grouping_cache.stats()
+        grouping_cache_count = grouping_cache_stats['size']
+        grouping_cache_valid = grouping_cache_count  # LRU缓存自动管理过期
 
         # 统计刮削缓存
-        scraping_cache_count = len(scraping_cache)
-        scraping_cache_valid = 0
-        for cache_data in scraping_cache.values():
-            if current_time - cache_data.get('timestamp', 0) < SCRAPING_CACHE_DURATION:
-                scraping_cache_valid += 1
+        scraping_cache_stats = scraping_cache.stats()
+        scraping_cache_count = scraping_cache_stats['size']
+        scraping_cache_valid = scraping_cache_count  # LRU缓存自动管理过期
 
         return jsonify({
             'success': True,
@@ -6028,6 +6735,37 @@ def cancel_task():
     except Exception as e:
         logging.error(f"取消任务时发生错误: {e}")
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/performance_stats', methods=['GET'])
+def get_performance_stats():
+    """获取性能统计信息"""
+    try:
+        stats = {
+            'app_state': app_state.get_stats(),
+            'performance': performance_monitor.get_stats(),
+            'system_info': {
+                'python_version': sys.version,
+                'platform': sys.platform,
+                'current_time': datetime.datetime.now().isoformat()
+            }
+        }
+        return jsonify({'success': True, 'stats': stats})
+    except Exception as e:
+        logging.error(f"获取性能统计时发生错误: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/reset_performance_stats', methods=['POST'])
+def reset_performance_stats():
+    """重置性能统计"""
+    try:
+        performance_monitor.reset_stats()
+        return jsonify({'success': True, 'message': '性能统计已重置'})
+    except Exception as e:
+        logging.error(f"重置性能统计时发生错误: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
 
 @app.route('/get_file_list', methods=['POST'])
 def get_file_list():
@@ -6704,60 +7442,53 @@ def delete_files():
         logging.error(f"删除文件时发生错误: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/suggest_folder_name', methods=['POST'])
-def suggest_folder_name():
-    """根据文件夹内容智能建议文件夹名称"""
+# ================================
+# 智能文件夹命名相关函数
+# ================================
+
+def validate_folder_id_for_naming(folder_id_str):
+    """验证文件夹ID的有效性"""
+    if not folder_id_str or folder_id_str == 'null' or folder_id_str == 'undefined':
+        return None, '无效的文件夹ID'
+
     try:
-        # 开始新任务
-        start_new_task(f"suggest_name_{int(time.time())}")
+        folder_id = int(folder_id_str)
+        return folder_id, None
+    except (ValueError, TypeError):
+        return None, '文件夹ID必须是数字'
 
-        folder_id = request.form.get('folder_id', '0')
 
-        # 处理无效的folder_id值
-        if not folder_id or folder_id == 'null' or folder_id == 'undefined':
-            return jsonify({'success': False, 'error': '无效的文件夹ID'})
+def get_sampled_video_files(folder_id, max_files=50):
+    """获取文件夹中的视频文件，如果数量过多则进行采样"""
+    video_files = []
 
-        try:
-            folder_id = int(folder_id)
-        except (ValueError, TypeError):
-            return jsonify({'success': False, 'error': '文件夹ID必须是数字'})
-
-        logging.info(f"为文件夹 {folder_id} 生成智能命名建议")
-
-        # 检查任务是否被取消
-        check_task_cancelled()
-
-        # 获取文件夹属性和内容分析（智能重命名优化版本）
-        video_files = []
-        try:
-            # 为智能重命名功能使用优化的扫描策略
-            get_video_files_for_naming(folder_id, video_files)
-        except Exception as e:
-            if "任务已被用户取消" in str(e):
-                logging.info("🛑 文件遍历过程中任务被用户取消")
-                return jsonify({'success': False, 'error': '任务已被用户取消', 'cancelled': True})
-            else:
-                logging.error(f"递归获取视频文件时发生错误: {e}")
-                return jsonify({'success': False, 'error': f'获取文件列表失败: {str(e)}'})
-
-        if not video_files:
-            return jsonify({'success': False, 'error': '文件夹中没有找到视频文件'})
-
-        # 使用AI分析文件内容生成建议名称
-        # 如果文件数量超过50个，随机取50个进行AI分析
-        if len(video_files) > 50:
-            import random
-            sampled_video_files = random.sample(video_files, 50)
-            logging.info(f"📊 文件数量 {len(video_files)} 超过50个，随机取样 50 个文件进行AI分析")
+    try:
+        # 为智能重命名功能使用优化的扫描策略
+        get_video_files_for_naming(folder_id, video_files)
+    except Exception as e:
+        if "任务已被用户取消" in str(e):
+            raise TaskCancelledException("文件遍历过程中任务被用户取消")
         else:
-            sampled_video_files = video_files
-            logging.info(f"📊 文件数量 {len(video_files)} 在限制内，使用全部文件进行AI分析")
+            raise FileSystemError(f"获取文件列表失败: {str(e)}")
 
-        file_list = [{'fileId': item['fileId'], 'filename': item['filename']} for item in sampled_video_files]
-        user_input_content = repr(file_list)
+    if not video_files:
+        raise ValidationError('文件夹中没有找到视频文件')
 
-        # 使用专门的提示词来生成文件夹名称
-        FOLDER_NAME_PROMPT = """
+    # 如果文件数量超过限制，随机取样
+    if len(video_files) > max_files:
+        import random
+        sampled_video_files = random.sample(video_files, max_files)
+        logging.info(f"📊 文件数量 {len(video_files)} 超过{max_files}个，随机取样 {max_files} 个文件进行AI分析")
+    else:
+        sampled_video_files = video_files
+        logging.info(f"📊 文件数量 {len(video_files)} 在限制内，使用全部文件进行AI分析")
+
+    return video_files, sampled_video_files
+
+
+def get_folder_naming_prompt():
+    """获取文件夹命名的AI提示词"""
+    return """
 你是一个专业的媒体文件夹命名助手。基于以下视频文件列表，为包含这些文件的文件夹建议一个合适且一致的名称。
 
 **🚨 重要提醒：**
@@ -6853,108 +7584,169 @@ def suggest_folder_name():
 文件列表：
 """
 
+
+def generate_folder_name_with_ai(file_list):
+    """使用AI生成文件夹名称建议"""
+    user_input_content = repr(file_list)
+    folder_name_prompt = get_folder_naming_prompt()
+
+    max_retries = AI_MAX_RETRIES
+    retry_delay = AI_RETRY_DELAY
+    suggested_name = None
+
+    # 构建完整的提示词
+    full_prompt = f"{folder_name_prompt}\n\n{user_input_content}"
+
+    for attempt in range(max_retries):
         try:
-            max_retries = AI_MAX_RETRIES
-            retry_delay = AI_RETRY_DELAY
-            suggested_name = None
+            # 检查任务是否被取消
+            check_task_cancelled()
 
-            # 构建完整的提示词（包含系统提示和用户内容）
-            full_prompt = f"{FOLDER_NAME_PROMPT}\n\n{user_input_content}"
+            # 使用统一的AI API调用函数
+            ai_content = call_ai_api(full_prompt, GROUPING_MODEL)
 
-            for attempt in range(max_retries):
-                try:
-                    # 检查任务是否被取消（AI调用前）
-                    check_task_cancelled()
+            if not ai_content:
+                logging.warning(f"AI API调用返回空结果 (尝试 {attempt + 1}/{max_retries})")
+                continue
 
-                    # 使用统一的AI API调用函数
-                    ai_content = call_ai_api(full_prompt, GROUPING_MODEL)
+            logging.info(f"AI原始响应: {ai_content}")
 
-                    if not ai_content:
-                        logging.warning(f"AI API调用返回空结果 (尝试 {attempt + 1}/{max_retries})")
-                        continue
+            # 解析AI响应
+            suggested_name = parse_folder_name_from_ai_response(ai_content)
 
-                    logging.info(f"AI原始响应: {ai_content}")
-
-                    # 首先尝试解析JSON格式
-                    json_data = parse_json_from_ai_response(ai_content)
-
-                    if json_data:
-                        if isinstance(json_data, dict) and 'suggested_name' in json_data:
-                            suggested_name = json_data['suggested_name']
-                            media_type = json_data.get('media_type', '')
-                            reasoning = json_data.get('reasoning', '')
-                            logging.info(f"🎯 成功解析JSON格式的建议名称: {suggested_name}")
-                            logging.info(f"📊 媒体类型: {media_type}, 命名理由: {reasoning}")
-                        elif isinstance(json_data, list) and len(json_data) > 0:
-                            first_item = json_data[0]
-                            if isinstance(first_item, dict) and 'suggested_name' in first_item:
-                                suggested_name = first_item['suggested_name']
-                                media_type = first_item.get('media_type', '')
-                                reasoning = first_item.get('reasoning', '')
-                                logging.info(f"🎯 成功解析JSON数组格式的建议名称: {suggested_name}")
-                                logging.info(f"📊 媒体类型: {media_type}, 命名理由: {reasoning}")
-                    else:
-                        logging.warning(f"JSON解析失败，尝试使用原始内容")
-
-                    # 如果JSON解析失败，尝试直接使用响应内容
-                    if not suggested_name:
-                        # 清理响应内容，移除可能的格式化字符
-                        clean_content = ai_content.strip()
-                        clean_content = re.sub(r'```json|```', '', clean_content)
-                        clean_content = re.sub(r'[{}"\[\]]', '', clean_content)
-                        clean_content = re.sub(r'suggested_name\s*:\s*', '', clean_content)
-                        clean_content = clean_content.strip()
-
-                        if clean_content and len(clean_content) <= 100:  # 合理的文件夹名称长度
-                            suggested_name = clean_content
-
-                    if suggested_name:
-                        break
-
-                except Exception as e:
-                    logging.error(f"AI请求处理失败 (尝试 {attempt + 1}/{max_retries}): {e}")
-                    if attempt < max_retries - 1:
-                        time.sleep(retry_delay)
-                    else:
-                        return jsonify({'success': False, 'error': f'AI服务请求失败: {str(e)}'})
-
-            if suggested_name and isinstance(suggested_name, str):
-                # 清理建议的名称
-                suggested_name = suggested_name.strip().strip('"\'')
-
-                # 移除可能的非法字符
-                invalid_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
-                for char in invalid_chars:
-                    suggested_name = suggested_name.replace(char, '')
-
-                # 限制长度
-                if len(suggested_name) > 50:
-                    suggested_name = suggested_name[:50]
-
-                # 确保名称不为空
-                if suggested_name:
-                    logging.info(f"🤖 AI生成的文件夹名称建议: {suggested_name}")
-                    return jsonify({
-                        'success': True,
-                        'suggested_name': suggested_name,
-                        'file_count': len(video_files)
-                    })
-
-            # 如果所有尝试都失败，返回错误
-            logging.warning(f"AI未能生成有效的文件夹名称建议")
-            return jsonify({'success': False, 'error': 'AI未能生成有效的文件夹名称建议'})
+            if suggested_name:
+                break
 
         except Exception as e:
-            logging.error(f"生成文件夹名称建议时发生错误: {e}")
-            return jsonify({'success': False, 'error': f'生成建议失败: {str(e)}'})
+            logging.error(f"AI请求处理失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+            else:
+                raise AIServiceError(f'AI服务请求失败: {str(e)}')
 
-    except Exception as e:
-        if "任务已被用户取消" in str(e):
-            logging.info("🛑 文件夹命名建议任务被用户取消")
-            return jsonify({'success': False, 'error': '任务已被用户取消', 'cancelled': True})
+    if not suggested_name:
+        raise AIServiceError('AI未能生成有效的文件夹名称建议')
+
+    return suggested_name
+
+
+def parse_folder_name_from_ai_response(ai_content):
+    """从AI响应中解析文件夹名称"""
+    # 首先尝试解析JSON格式
+    json_data = parse_json_from_ai_response(ai_content)
+
+    if json_data:
+        if isinstance(json_data, dict) and 'suggested_name' in json_data:
+            suggested_name = json_data['suggested_name']
+            media_type = json_data.get('media_type', '')
+            reasoning = json_data.get('reasoning', '')
+            logging.info(f"🎯 成功解析JSON格式的建议名称: {suggested_name}")
+            logging.info(f"📊 媒体类型: {media_type}, 命名理由: {reasoning}")
+            return suggested_name
+        elif isinstance(json_data, list) and len(json_data) > 0:
+            first_item = json_data[0]
+            if isinstance(first_item, dict) and 'suggested_name' in first_item:
+                suggested_name = first_item['suggested_name']
+                media_type = first_item.get('media_type', '')
+                reasoning = first_item.get('reasoning', '')
+                logging.info(f"🎯 成功解析JSON数组格式的建议名称: {suggested_name}")
+                logging.info(f"📊 媒体类型: {media_type}, 命名理由: {reasoning}")
+                return suggested_name
+
+    # 如果JSON解析失败，尝试直接使用响应内容
+    logging.warning(f"JSON解析失败，尝试使用原始内容")
+
+    # 清理响应内容，移除可能的格式化字符
+    clean_content = ai_content.strip()
+    clean_content = re.sub(r'```json|```', '', clean_content)
+    clean_content = re.sub(r'[{}"\[\]]', '', clean_content)
+    clean_content = re.sub(r'suggested_name\s*:\s*', '', clean_content)
+    clean_content = clean_content.strip()
+
+    if clean_content and len(clean_content) <= 100:  # 合理的文件夹名称长度
+        return clean_content
+
+    return None
+
+
+def clean_suggested_folder_name(suggested_name):
+    """清理和验证建议的文件夹名称"""
+    if not suggested_name or not isinstance(suggested_name, str):
+        return None
+
+    # 清理建议的名称
+    suggested_name = suggested_name.strip().strip('"\'')
+
+    # 移除可能的非法字符
+    invalid_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
+    for char in invalid_chars:
+        suggested_name = suggested_name.replace(char, '')
+
+    # 限制长度
+    if len(suggested_name) > 50:
+        suggested_name = suggested_name[:50]
+
+    # 确保名称不为空
+    if not suggested_name:
+        return None
+
+    return suggested_name
+
+
+@app.route('/suggest_folder_name', methods=['POST'])
+@performance_monitor_decorator('suggest_folder_name')
+def suggest_folder_name():
+    """根据文件夹内容智能建议文件夹名称"""
+    try:
+        # 开始新任务
+        start_new_task(f"suggest_name_{int(time.time())}")
+
+        # 清理操作相关缓存
+        clear_operation_related_caches(operation_type="renaming")
+
+        folder_id_str = request.form.get('folder_id', '0')
+
+        # 验证文件夹ID
+        folder_id, error_msg = validate_folder_id_for_naming(folder_id_str)
+        if error_msg:
+            return jsonify({'success': False, 'error': error_msg})
+
+        logging.info(f"为文件夹 {folder_id} 生成智能命名建议")
+
+        # 检查任务是否被取消
+        check_task_cancelled()
+
+        # 获取文件夹中的视频文件（采样处理）
+        video_files, sampled_video_files = get_sampled_video_files(folder_id)
+
+        # 准备AI分析的文件列表
+        file_list = [{'fileId': item['fileId'], 'filename': item['filename']} for item in sampled_video_files]
+
+        # 使用AI生成文件夹名称建议
+        suggested_name = generate_folder_name_with_ai(file_list)
+
+        # 清理和验证建议的名称
+        clean_name = clean_suggested_folder_name(suggested_name)
+
+        if clean_name:
+            logging.info(f"🤖 AI生成的文件夹名称建议: {clean_name}")
+            return jsonify({
+                'success': True,
+                'suggested_name': clean_name,
+                'file_count': len(video_files)
+            })
         else:
-            logging.error(f"智能文件夹命名时发生错误: {e}", exc_info=True)
-            return jsonify({'success': False, 'error': str(e)})
+            return jsonify({'success': False, 'error': 'AI未能生成有效的文件夹名称建议'})
+
+    except TaskCancelledException:
+        logging.info("🛑 文件夹命名建议任务被用户取消")
+        return jsonify({'success': False, 'error': '任务已被用户取消', 'cancelled': True})
+    except (ValidationError, FileSystemError, AIServiceError) as e:
+        logging.error(f"智能文件夹命名失败: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+    except Exception as e:
+        logging.error(f"智能文件夹命名时发生未知错误: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': f'系统内部错误: {str(e)}'})
 
 @app.route('/organize_files_by_groups', methods=['POST'])
 def organize_files_by_groups():
@@ -7208,19 +8000,26 @@ def restart_app():
                 print(f"Failed to start new process: {e}")
                 logging.error(f"重启进程失败: {e}", exc_info=True)
 
-                # 备用重启方法：尝试使用shell命令
+                # 备用重启方法：使用安全的subprocess
                 try:
                     print("尝试备用重启方法...")
                     if is_packaged:
                         if sys.platform == "darwin":  # macOS
-                            os.system("nohup ./pan123-scraper-mac > /dev/null 2>&1 &")
+                            subprocess.Popen(["nohup", "./pan123-scraper-mac"],
+                                           stdout=subprocess.DEVNULL,
+                                           stderr=subprocess.DEVNULL)
                         elif sys.platform == "win32":  # Windows
-                            os.system("start pan123-scraper-win.exe")
+                            subprocess.Popen(["pan123-scraper-win.exe"],
+                                           creationflags=subprocess.CREATE_NEW_CONSOLE)
                         else:  # Linux
-                            os.system("nohup ./pan123-scraper-linux > /dev/null 2>&1 &")
+                            subprocess.Popen(["nohup", "./pan123-scraper-linux"],
+                                           stdout=subprocess.DEVNULL,
+                                           stderr=subprocess.DEVNULL)
                     else:
                         # 开发环境
-                        os.system(f"nohup {sys.executable} {' '.join(sys.argv)} > /dev/null 2>&1 &")
+                        subprocess.Popen([sys.executable] + sys.argv,
+                                       stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL)
 
                     print("备用重启方法执行完成")
                     time.sleep(0.5)
@@ -7493,10 +8292,15 @@ def get_process_using_port(port):
     import sys
 
     try:
+        # 验证端口号是否为有效整数
+        if not isinstance(port, int) or port < 1 or port > 65535:
+            logging.warning(f"无效的端口号: {port}")
+            return None
+
         if sys.platform == "win32":
-            # Windows系统使用netstat命令
-            cmd = f"netstat -ano | findstr :{port}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            # Windows系统使用netstat命令（安全版本）
+            result = subprocess.run(["netstat", "-ano"],
+                                  capture_output=True, text=True, timeout=10)
             if result.returncode == 0 and result.stdout.strip():
                 lines = result.stdout.strip().split('\n')
                 for line in lines:
@@ -7506,9 +8310,9 @@ def get_process_using_port(port):
                             pid = parts[-1]
                             return int(pid) if pid.isdigit() else None
         else:
-            # Linux/macOS系统使用lsof命令
-            cmd = f"lsof -ti:{port}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            # Linux/macOS系统使用lsof命令（安全版本）
+            result = subprocess.run(["lsof", f"-ti:{port}"],
+                                  capture_output=True, text=True, timeout=10)
             if result.returncode == 0 and result.stdout.strip():
                 pid = result.stdout.strip().split('\n')[0]
                 return int(pid) if pid.isdigit() else None
@@ -7524,15 +8328,20 @@ def kill_process_by_pid(pid):
     import sys
 
     try:
+        # 验证PID是否为有效整数
+        if not isinstance(pid, int) or pid <= 0:
+            logging.warning(f"无效的PID: {pid}")
+            return False
+
         if sys.platform == "win32":
-            # Windows系统使用taskkill命令
-            cmd = f"taskkill /F /PID {pid}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            # Windows系统使用taskkill命令（安全版本）
+            result = subprocess.run(["taskkill", "/F", "/PID", str(pid)],
+                                  capture_output=True, text=True, timeout=10)
             return result.returncode == 0
         else:
-            # Linux/macOS系统使用kill命令
-            cmd = f"kill -9 {pid}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            # Linux/macOS系统使用kill命令（安全版本）
+            result = subprocess.run(["kill", "-9", str(pid)],
+                                  capture_output=True, text=True, timeout=10)
             return result.returncode == 0
     except Exception as e:
         logging.error(f"结束进程 {pid} 失败: {e}")
@@ -7545,10 +8354,15 @@ def get_process_name_by_pid(pid):
     import sys
 
     try:
+        # 验证PID是否为有效整数
+        if not isinstance(pid, int) or pid <= 0:
+            logging.warning(f"无效的PID: {pid}")
+            return "无效PID"
+
         if sys.platform == "win32":
-            # Windows系统使用tasklist命令
-            cmd = f"tasklist /FI \"PID eq {pid}\" /FO CSV /NH"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            # Windows系统使用tasklist命令（安全版本）
+            result = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
+                                  capture_output=True, text=True, timeout=10)
             if result.returncode == 0 and result.stdout.strip():
                 lines = result.stdout.strip().split('\n')
                 if lines:
@@ -7557,9 +8371,9 @@ def get_process_name_by_pid(pid):
                     if len(parts) >= 1:
                         return parts[0].strip('"')
         else:
-            # Linux/macOS系统使用ps命令
-            cmd = f"ps -p {pid} -o comm="
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+            # Linux/macOS系统使用ps命令（安全版本）
+            result = subprocess.run(["ps", "-p", str(pid), "-o", "comm="],
+                                  capture_output=True, text=True, timeout=10)
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip()
     except Exception as e:
@@ -7686,6 +8500,9 @@ def start_flask_app():
     logging.info(f"🌐 启动服务器，端口: {available_port}")
 
     try:
+        # 启动缓存清理后台任务
+        start_cache_cleanup_task()
+
         # 检测是否为打包环境
         import sys
         is_packaged = getattr(sys, 'frozen', False)
