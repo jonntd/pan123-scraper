@@ -7143,6 +7143,36 @@ def apply_rename():
                         'error': error_message
                     })
 
+        # 重命名操作完成后，清理相关缓存
+        if overall_success or any(result.get('status') == 'success' for result in all_results):
+            # 如果有任何文件重命名成功，清理相关缓存
+            logging.info("🧹 重命名操作完成，开始清理相关缓存...")
+
+            # 清理刮削缓存（因为文件名已改变，旧的刮削结果不再有效）
+            old_scraping_size = scraping_cache.size()
+            scraping_cache.clear()
+            logging.info(f"🧹 清理刮削缓存: {old_scraping_size} 项")
+
+            # 清理分组缓存（因为文件名已改变，分组结果可能不再准确）
+            old_grouping_size = grouping_cache.size()
+            grouping_cache.clear()
+            logging.info(f"🧹 清理分组缓存: {old_grouping_size} 项")
+
+            # 清理文件夹内容缓存（因为文件名已改变，需要刷新文件列表）
+            old_folder_size = folder_content_cache.size()
+            folder_content_cache.clear()
+            logging.info(f"🧹 清理文件夹内容缓存: {old_folder_size} 项")
+
+            # 清理路径缓存（如果重命名的是文件夹，路径信息需要更新）
+            # 这里保守一些，只在缓存过多时清理，避免影响性能
+            if folder_path_cache.size() > 200:
+                old_path_size = folder_path_cache.size()
+                folder_path_cache.clear()
+                logging.info(f"🧹 清理路径缓存: {old_path_size} 项")
+
+            total_cleared = old_scraping_size + old_grouping_size + old_folder_size
+            logging.info(f"🧹 重命名后缓存清理完成，共清理 {total_cleared} 项缓存")
+
         # 参考movie115的返回格式
         if overall_success:
             logging.info(f"🎉 批量重命名完成: 全部成功，共处理 {len(all_results)} 个文件")
@@ -7330,6 +7360,28 @@ def rename_files():
                 'new_name': failed_item['newName'],
                 'error': failed_item.get('error', '未知错误')
             })
+
+        # 如果有任何文件重命名成功，清理相关缓存
+        if total_successful > 0:
+            logging.info("🧹 重命名操作完成，开始清理相关缓存...")
+
+            # 清理刮削缓存（因为文件名已改变，旧的刮削结果不再有效）
+            old_scraping_size = scraping_cache.size()
+            scraping_cache.clear()
+            logging.info(f"🧹 清理刮削缓存: {old_scraping_size} 项")
+
+            # 清理分组缓存（因为文件名已改变，分组结果可能不再准确）
+            old_grouping_size = grouping_cache.size()
+            grouping_cache.clear()
+            logging.info(f"🧹 清理分组缓存: {old_grouping_size} 项")
+
+            # 清理文件夹内容缓存（因为文件名已改变，需要刷新文件列表）
+            old_folder_size = folder_content_cache.size()
+            folder_content_cache.clear()
+            logging.info(f"🧹 清理文件夹内容缓存: {old_folder_size} 项")
+
+            total_cleared = old_scraping_size + old_grouping_size + old_folder_size
+            logging.info(f"🧹 重命名后缓存清理完成，共清理 {total_cleared} 项缓存")
 
         if total_failed == 0:
             return jsonify({
