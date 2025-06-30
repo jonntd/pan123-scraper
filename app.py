@@ -411,8 +411,8 @@ app_config = {
 
     # 第三方API配置
     "TMDB_API_KEY": "",        # The Movie Database API密钥
-    "GEMINI_API_KEY": "",      # Gemini AI API密钥
-    "GEMINI_API_URL": "",      # Gemini AI API服务地址
+    "AI_API_KEY": "",          # AI API密钥（支持OpenAI兼容接口）
+    "AI_API_URL": "",          # AI API服务地址（支持OpenAI兼容接口）
 
     # AI模型配置
     "MODEL": "",               # 默认AI模型名称
@@ -462,8 +462,8 @@ CLIENT_SECRET = app_config["CLIENT_SECRET"]
 
 # 第三方API配置全局变量
 TMDB_API_KEY = ""
-GEMINI_API_KEY = ""
-GEMINI_API_URL = ""
+AI_API_KEY = ""
+AI_API_URL = ""
 
 # AI模型配置全局变量
 MODEL = app_config["MODEL"]
@@ -1448,9 +1448,9 @@ def ensure_valid_access_token(func):
     return wrapper
 
 
-def call_gemini_ai_api(prompt, model=None, temperature=0.1):
+def call_ai_api(prompt, model=None, temperature=0.1):
     """
-    调用Gemini AI API进行文本生成
+    调用AI API进行文本生成（支持OpenAI兼容接口）
 
     Args:
         prompt (str): 发送给AI的提示词
@@ -1462,24 +1462,24 @@ def call_gemini_ai_api(prompt, model=None, temperature=0.1):
     """
     try:
         # 检查必要的配置
-        if not GEMINI_API_KEY:
-            logging.error("❌ GEMINI_API_KEY未配置")
+        if not AI_API_KEY:
+            logging.error("❌ AI API密钥未配置")
             return None
 
-        if not GEMINI_API_URL:
-            logging.error("❌ GEMINI_API_URL未配置")
+        if not AI_API_URL:
+            logging.error("❌ AI API服务地址未配置")
             return None
 
         if not model:
             logging.error("❌ 模型名称未指定")
             return None
 
-        logging.info(f"🌐 调用AI API: {GEMINI_API_URL}")
+        logging.info(f"🌐 调用AI API: {AI_API_URL}")
         logging.info(f"🤖 使用模型: {model}")
         logging.info(f"📝 提示词长度: {len(prompt)} 字符")
 
         headers = {
-            "Authorization": f"Bearer {GEMINI_API_KEY}",
+            "Authorization": f"Bearer {AI_API_KEY}",
             "Content-Type": "application/json",
         }
 
@@ -1491,7 +1491,7 @@ def call_gemini_ai_api(prompt, model=None, temperature=0.1):
         }
 
         # 使用全局配置的超时时间
-        response = requests.post(GEMINI_API_URL, headers=headers, json=payload, timeout=AI_API_TIMEOUT)
+        response = requests.post(AI_API_URL, headers=headers, json=payload, timeout=AI_API_TIMEOUT)
 
         logging.info(f"📊 API响应状态码: {response.status_code}")
 
@@ -1554,17 +1554,65 @@ def parse_json_from_ai_response(response_content):
     if not response_content:
         return None
 
-    # 使用正则表达式提取JSON部分（支持嵌套的大括号）
+    # 方法1: 尝试找到所有JSON块，使用第一个有效的
+    json_matches = re.findall(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_content, re.DOTALL)
+
+    for json_str in json_matches:
+        try:
+            parsed_json = json.loads(json_str)
+            # 验证JSON是否包含必要的字段
+            if isinstance(parsed_json, dict) and 'suggested_name' in parsed_json:
+                logging.info(f"✅ 成功解析JSON (方法1): {json_str[:100]}...")
+                return parsed_json
+        except json.JSONDecodeError:
+            continue
+
+    # 方法2: 使用贪婪匹配提取最大的JSON块
     json_match = re.search(r'\{.*\}', response_content, re.DOTALL)
     if json_match:
         json_str = json_match.group()
+
+        # 尝试修复常见的JSON格式问题
+        # 移除重复的JSON块（如果存在）
+        if '```json' in json_str:
+            # 提取第一个```json块中的内容
+            json_blocks = re.findall(r'```json\s*(\{.*?\})\s*```', json_str, re.DOTALL)
+            if json_blocks:
+                json_str = json_blocks[0]
+
         try:
-            return json.loads(json_str)
+            parsed_json = json.loads(json_str)
+            logging.info(f"✅ 成功解析JSON (方法2): {json_str[:100]}...")
+            return parsed_json
         except json.JSONDecodeError as e:
             logging.error(f"JSON解析失败: {e}")
-            logging.debug(f"原始JSON字符串: {json_str}")
+            logging.debug(f"原始JSON字符串: {json_str[:500]}...")
+
+            # 方法3: 尝试修复常见的JSON错误
+            try:
+                # 移除可能的重复内容
+                if json_str.count('{') > json_str.count('}'):
+                    # 找到第一个完整的JSON对象
+                    brace_count = 0
+                    end_pos = 0
+                    for i, char in enumerate(json_str):
+                        if char == '{':
+                            brace_count += 1
+                        elif char == '}':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                end_pos = i + 1
+                                break
+
+                    if end_pos > 0:
+                        json_str = json_str[:end_pos]
+                        parsed_json = json.loads(json_str)
+                        logging.info(f"✅ 成功解析JSON (方法3): {json_str[:100]}...")
+                        return parsed_json
+            except json.JSONDecodeError:
+                pass
     else:
-        logging.error(f"响应中未找到JSON格式: {response_content}")
+        logging.error(f"响应中未找到JSON格式: {response_content[:200]}...")
 
     return None
 
@@ -1627,7 +1675,7 @@ def match_files_with_ai(group_name, video_files, used_file_ids, target_count):
         """
 
         # 调用AI进行匹配
-        response_content = call_gemini_ai_api(match_prompt, app_config.get('GROUPING_MODEL', ''))
+        response_content = call_ai_api(match_prompt, app_config.get('GROUPING_MODEL', ''))
 
         if response_content:
             result = parse_json_from_ai_response(response_content)
@@ -1753,7 +1801,7 @@ def load_application_config():
         MODEL, GROUPING_MODEL, LANGUAGE: AI和本地化配置
     """
     global app_config, QPS_LIMIT, CHUNK_SIZE, MAX_WORKERS, CLIENT_ID, CLIENT_SECRET
-    global TMDB_API_KEY, GEMINI_API_KEY, GEMINI_API_URL, MODEL, GROUPING_MODEL, LANGUAGE
+    global TMDB_API_KEY, AI_API_KEY, AI_API_URL, MODEL, GROUPING_MODEL, LANGUAGE
     global API_MAX_RETRIES, API_RETRY_DELAY, AI_API_TIMEOUT, AI_MAX_RETRIES, AI_RETRY_DELAY
     global TMDB_API_TIMEOUT, TMDB_MAX_RETRIES, TMDB_RETRY_DELAY, CLOUD_API_MAX_RETRIES, CLOUD_API_RETRY_DELAY
     global GROUPING_MAX_RETRIES, GROUPING_RETRY_DELAY, TASK_QUEUE_GET_TIMEOUT
@@ -1778,10 +1826,11 @@ def load_application_config():
     CLIENT_ID = app_config["CLIENT_ID"]
     CLIENT_SECRET = app_config["CLIENT_SECRET"]
     TMDB_API_KEY = app_config.get("TMDB_API_KEY", "")
-    GEMINI_API_KEY = app_config.get("GEMINI_API_KEY", "")
-    GEMINI_API_URL = app_config.get("GEMINI_API_URL", "")
-    MODEL = app_config.get("MODEL", "gemini-2.5-flash-lite-preview-06-17-search")
-    GROUPING_MODEL = app_config.get("GROUPING_MODEL", "gemini-2.5-flash-lite-preview-06-17")
+    # 兼容旧配置：如果新配置不存在，使用旧配置
+    AI_API_KEY = app_config.get("AI_API_KEY", "") or app_config.get("GEMINI_API_KEY", "")
+    AI_API_URL = app_config.get("AI_API_URL", "") or app_config.get("GEMINI_API_URL", "")
+    MODEL = app_config.get("MODEL", "gpt-3.5-turbo")
+    GROUPING_MODEL = app_config.get("GROUPING_MODEL", "gpt-3.5-turbo")
     LANGUAGE = app_config.get("LANGUAGE", "zh-CN")
 
     # 更新重试和超时配置
@@ -1802,9 +1851,9 @@ def load_application_config():
     ENABLE_SCRAPING_QUALITY_ASSESSMENT = app_config.get("ENABLE_SCRAPING_QUALITY_ASSESSMENT", True)
     logging.info(f"✅ 配置加载完成。QPS_LIMIT: {QPS_LIMIT}, CHUNK_SIZE: {CHUNK_SIZE}, MAX_WORKERS: {MAX_WORKERS}")
     logging.info(f"🔑 API配置状态 - CLIENT_ID: {'已设置' if CLIENT_ID else '未设置'}, CLIENT_SECRET: {'已设置' if CLIENT_SECRET else '未设置'}")
-    logging.info(f"🎬 TMDB_API_KEY: {'已设置' if TMDB_API_KEY else '未设置'}, GEMINI_API_KEY: {'已设置' if GEMINI_API_KEY else '未设置'}")
+    logging.info(f"🎬 TMDB_API_KEY: {'已设置' if TMDB_API_KEY else '未设置'}, AI_API_KEY: {'已设置' if AI_API_KEY else '未设置'}")
     logging.info(f"🤖 AI模型配置 - MODEL: {MODEL}, GROUPING_MODEL: {GROUPING_MODEL}, LANGUAGE: {LANGUAGE}")
-    logging.info(f"🌐 GEMINI_API_URL: {'已设置' if GEMINI_API_URL else '未设置'}")
+    logging.info(f"🌐 AI_API_URL: {'已设置' if AI_API_URL else '未设置'}")
 
 def save_application_config():
     """
@@ -2380,6 +2429,103 @@ def get_folder_full_path(folder_id):
         folder_path_cache[folder_id_to_cache] = current_path
 
     return full_path
+
+
+def get_video_files_for_naming(folder_id, file_list, max_files=200, max_depth=3):
+    """
+    为智能重命名功能优化的视频文件获取函数
+
+    Args:
+        folder_id (int): 要搜索的文件夹ID
+        file_list (list): 用于存储找到的视频文件的列表（会被修改）
+        max_files (int): 最大文件数量限制，默认200
+        max_depth (int): 最大扫描深度，默认3层
+
+    Note:
+        此函数专门为智能重命名功能优化，限制扫描深度和文件数量以提高性能
+    """
+    logging.info(f"🎯 开始智能重命名文件扫描 - 最大文件数: {max_files}, 最大深度: {max_depth}")
+
+    def _scan_folder_limited(folder_id, current_path="", depth=0):
+        # 检查任务是否被取消
+        check_task_cancelled()
+
+        # 检查深度限制
+        if depth >= max_depth:
+            logging.info(f"⏹️ 达到最大扫描深度 {max_depth}，停止扫描: {current_path}")
+            return
+
+        # 检查文件数量限制
+        if len(file_list) >= max_files:
+            logging.info(f"⏹️ 达到最大文件数量 {max_files}，停止扫描")
+            return
+
+        if not current_path:
+            current_path = get_folder_full_path(folder_id)
+            logging.info(f"🔍 智能重命名扫描 - 根路径: {current_path}")
+
+        try:
+            # 获取文件夹内容
+            all_files = get_all_files_in_folder(folder_id, limit=100, check_cancellation=True)
+            logging.info(f"📂 智能重命名扫描 {folder_id} ({current_path}) - {len(all_files)} 个项目 (深度: {depth})")
+
+            # 分离视频文件和子文件夹
+            video_files_in_folder = []
+            subfolders = []
+
+            for file_item in all_files:
+                if len(file_list) >= max_files:
+                    break
+
+                if file_item['type'] == 0:  # 文件
+                    _, ext = os.path.splitext(file_item['filename'])
+                    if ext.lower()[1:] in SUPPORTED_MEDIA_TYPES:
+                        video_files_in_folder.append(file_item)
+                elif file_item['type'] == 1:  # 文件夹
+                    subfolders.append(file_item)
+
+            # 处理当前文件夹中的视频文件
+            if video_files_in_folder:
+                gb_in_bytes = 1024 ** 3
+                for file_item in video_files_in_folder:
+                    if len(file_list) >= max_files:
+                        break
+
+                    bytes_value = file_item['size']
+                    gb_value = bytes_value / gb_in_bytes
+                    full_file_path = os.path.join(current_path, file_item['filename']) if current_path else file_item['filename']
+                    file_path = limit_path_depth(full_file_path, 3)
+
+                    enhanced_file_item = file_item.copy()
+                    enhanced_file_item['file_path'] = file_path
+                    enhanced_file_item['size_gb'] = f"{gb_value:.1f}GB"
+
+                    file_list.append(enhanced_file_item)
+
+                logging.info(f"✅ 发现 {len(video_files_in_folder)} 个视频文件: {current_path}")
+
+            # 递归处理子文件夹（如果还没达到限制）
+            if depth < max_depth - 1 and len(file_list) < max_files and subfolders:
+                # 限制子文件夹数量，优先处理可能包含更多内容的文件夹
+                limited_subfolders = subfolders[:20]  # 最多处理20个子文件夹
+
+                for subfolder in limited_subfolders:
+                    if len(file_list) >= max_files:
+                        break
+
+                    subfolder_path = os.path.join(current_path, subfolder['filename']) if current_path else subfolder['filename']
+                    _scan_folder_limited(subfolder['fileId'], subfolder_path, depth + 1)
+
+                if len(subfolders) > 20:
+                    logging.info(f"⚠️ 子文件夹数量 ({len(subfolders)}) 超过限制，只处理前20个")
+
+        except Exception as e:
+            logging.error(f"智能重命名扫描文件夹 {folder_id} 时发生错误: {e}")
+
+    # 开始扫描
+    _scan_folder_limited(folder_id)
+
+    logging.info(f"🎯 智能重命名文件扫描完成 - 共找到 {len(file_list)} 个视频文件")
 
 
 def get_video_files_recursively(folder_id, file_list, current_path="", depth=0, use_concurrent=True):
@@ -4012,7 +4158,7 @@ def _single_extraction_attempt(user_input_content, prompt, model, temperature=0.
             full_prompt = f"{prompt}\n\n{user_input_content}"
 
             # 使用改进的API调用函数
-            response_content = call_gemini_ai_api(full_prompt, model, temperature)
+            response_content = call_ai_api(full_prompt, model, temperature)
 
             if response_content:
                 logging.info(f"✅ AI响应成功，长度: {len(response_content)} 字符")
@@ -4715,9 +4861,9 @@ def refresh_token():
 def test_ai_api():
     """测试AI API连接"""
     try:
-        # 获取当前配置
-        api_url = app_config.get("GEMINI_API_URL", "")
-        api_key = app_config.get("GEMINI_API_KEY", "")
+        # 获取当前配置（支持新旧配置字段）
+        api_url = app_config.get("AI_API_URL", "") or app_config.get("GEMINI_API_URL", "")
+        api_key = app_config.get("AI_API_KEY", "") or app_config.get("GEMINI_API_KEY", "")
         grouping_model = app_config.get("GROUPING_MODEL", "")
 
         # 检查基本配置
@@ -4853,9 +4999,9 @@ def test_ai_api():
             'success': False,
             'error': 'API连接失败，请检查GEMINI_API_URL是否正确',
             'details': {
-                'api_url': app_config.get("GEMINI_API_URL", ""),
+                'api_url': app_config.get("AI_API_URL", "") or app_config.get("GEMINI_API_URL", ""),
                 'model': app_config.get("GROUPING_MODEL", ""),
-                'api_key_status': '已设置' if app_config.get("GEMINI_API_KEY") else '未设置'
+                'api_key_status': '已设置' if (app_config.get("AI_API_KEY") or app_config.get("GEMINI_API_KEY")) else '未设置'
             }
         })
     except Exception as e:
@@ -4864,9 +5010,9 @@ def test_ai_api():
             'success': False,
             'error': f'测试过程中发生错误: {str(e)}',
             'details': {
-                'api_url': app_config.get("GEMINI_API_URL", ""),
+                'api_url': app_config.get("AI_API_URL", "") or app_config.get("GEMINI_API_URL", ""),
                 'model': app_config.get("GROUPING_MODEL", ""),
-                'api_key_status': '已设置' if app_config.get("GEMINI_API_KEY") else '未设置'
+                'api_key_status': '已设置' if (app_config.get("AI_API_KEY") or app_config.get("GEMINI_API_KEY")) else '未设置'
             }
         })
 
@@ -4875,7 +5021,7 @@ def test_ai_api():
 def save_configuration():
     """保存用户提交的配置。"""
     global app_config, QPS_LIMIT, CHUNK_SIZE, MAX_WORKERS, CLIENT_ID, CLIENT_SECRET
-    global TMDB_API_KEY, GEMINI_API_KEY, GEMINI_API_URL, MODEL, GROUPING_MODEL, LANGUAGE
+    global TMDB_API_KEY, AI_API_KEY, AI_API_URL, MODEL, GROUPING_MODEL, LANGUAGE
     global CURRENT_STORAGE_TYPE, STORAGE_CONFIG
     try:
         new_config_data = request.json
@@ -6357,8 +6503,8 @@ def rename_files():
         rename_dict = {}
         for item in rename_data:
             file_id = item.get('fileId')
-            # 支持两种格式：newName（普通重命名）和 suggested_name（刮削预览重命名）
-            new_name = item.get('newName') or item.get('suggested_name')
+            # 支持多种格式：newName（普通重命名）、suggested_name（刮削预览重命名）、new_name（智能重命名）
+            new_name = item.get('newName') or item.get('suggested_name') or item.get('new_name')
             if file_id and new_name:
                 rename_dict[file_id] = new_name
 
@@ -6581,10 +6727,11 @@ def suggest_folder_name():
         # 检查任务是否被取消
         check_task_cancelled()
 
-        # 获取文件夹属性和内容分析
+        # 获取文件夹属性和内容分析（智能重命名优化版本）
         video_files = []
         try:
-            get_video_files_recursively(folder_id, video_files)
+            # 为智能重命名功能使用优化的扫描策略
+            get_video_files_for_naming(folder_id, video_files)
         except Exception as e:
             if "任务已被用户取消" in str(e):
                 logging.info("🛑 文件遍历过程中任务被用户取消")
@@ -6611,71 +6758,100 @@ def suggest_folder_name():
 
         # 使用专门的提示词来生成文件夹名称
         FOLDER_NAME_PROMPT = """
-       你是一个专业的媒体文件夹命名助手。基于以下视频文件列表，为包含这些文件的文件夹建议一个合适且一致的名称。
+你是一个专业的媒体文件夹命名助手。基于以下视频文件列表，为包含这些文件的文件夹建议一个合适且一致的名称。
 
-        **核心命名规则：**
+**🚨 重要提醒：**
+- 文件夹名称总长度必须严格控制在30个字符以内
+- 对于混合内容，绝对不能列出所有作品名称，必须使用简洁的描述性名称
+- 只返回一个最佳建议，不要提供多个选项
 
-        **电影命名规则：**
-        1. 单部电影：`电影名 (年份)`
-           - 示例：`复仇者联盟 (2012)`、`肖申克的救赎 (1994)`
-           - 必须包含准确的上映年份
+**核心命名规则：**
 
-        2. 电影系列/合集：
-           - 2-3部作品：`电影名系列 (年份范围)`
-           - 示例：`复仇者联盟系列 (2012-2019)`、`教父系列 (1972-1990)`
-           - 4部以上或跨度超过10年：`电影名 系列合集`
-           - 示例：`速度与激情 系列合集`、`007 系列合集`
+**电影命名规则：**
+1. 单部电影：`电影名 (年份)`
+   - 示例：`复仇者联盟 (2012)` (11字符)
+   - 示例：`肖申克的救赎 (1994)` (13字符)
 
-        **电视剧命名规则：**
-        1. 单季电视剧：`剧名 (年份) S01`
-           - 示例：`权力的游戏 (2011) S01`、`老友记 (1994) S01`
-           - 年份为首播年份
+2. 电影系列/合集：
+   - 2-3部作品：`电影名系列 (年份范围)`
+   - 示例：`复仇者联盟系列 (2012-2019)` (17字符)
+   - 4部以上：`电影名 系列合集`
+   - 示例：`速度与激情 系列合集` (10字符)
 
-        2. 多季电视剧：
-           - 2-4季：`剧名 (年份) S01-S04`
-           - 示例：`权力的游戏 (2011) S01-S08`、`绝命毒师 (2008) S01-S05`
-           - 5季以上：`剧名 完整系列`
-           - 示例：`老友记 完整系列`、`生活大爆炸 完整系列`
+**电视剧命名规则：**
+1. 单季电视剧：`剧名 (年份) S01`
+   - 示例：`权力的游戏 (2011) S01` (14字符)
+   - 示例：`老友记 (1994) S01` (12字符)
 
-        **混合内容：**
-        - 不同IP的内容：使用描述性名称
-        - 示例：`漫威电影合集`、`经典动作片收藏`、`2023年热门电影`
+2. 多季电视剧：
+   - 2-4季：`剧名 (年份) S01-S04`
+   - 示例：`绝命毒师 (2008) S01-S05` (16字符)
+   - 5季以上：`剧名 完整系列`
+   - 示例：`老友记 完整系列` (8字符)
 
-        **一致性保证机制：**
-        1. **标题统一**：同一IP必须使用完全相同的中文标题
-           - 优先级：官方中文译名 > 通用中文译名 > 英文原名
-        2. **年份准确**：必须使用首播/上映年份，不使用制作年份
-        3. **格式严格**：严格按照上述模板，不得随意变更格式
-        4. **字符限制**：避免特殊字符 / \\ : * ? " < > |
-        5. **长度控制**：总长度不超过50个字符
+**混合内容命名规则（重要）：**
+当文件夹包含多个不同IP的内容时，必须使用简洁的描述性名称：
 
-        **命名一致性检查清单：**
-        - [ ] 是否使用了统一的中文标题？
-        - [ ] 年份是否为首播/上映年份？
-        - [ ] 格式是否严格遵循模板？
-        - [ ] 是否避免了特殊字符？
-        - [ ] 长度是否在50字符以内？
+1. **多个电视剧系列**：
+   - `电视剧合集` (5字符)
+   - `剧集收藏` (4字符)
+   - `经典剧集` (4字符)
 
-        **分析步骤：**
-        1. 识别所有文件的媒体类型（电影/电视剧/混合）
-        2. 提取核心IP和标题信息，统一中文译名
-        3. 确定准确的首播/上映年份
-        4. 判断是单部作品、系列作品还是混合内容
-        5. 严格按照对应模板生成名称
-        6. 进行一致性检查确认
+2. **多个电影**：
+   - `电影合集` (4字符)
+   - `影片收藏` (4字符)
+   - `经典电影` (4字符)
 
-        请严格按照上述规则，以JSON格式返回建议的文件夹名称：
-        {
-            "suggested_name": "建议的文件夹名称",
-            "media_type": "movie/tv/mixed",
-            "title_source": "中文官方译名/中文通用译名/英文原名",
-            "year_range": "年份或年份范围",
-            "content_count": "作品数量统计",
-            "reasoning": "详细的命名理由和一致性检查说明"
-        }
+3. **按年代分类**：
+   - `2020年代剧集` (7字符)
+   - `经典老片` (4字符)
 
-        文件列表：
-        """
+4. **按类型分类**：
+   - `动作片合集` (5字符)
+   - `科幻剧集` (4字符)
+
+**❌ 错误示例（绝对不要这样做）：**
+- `剧名1 (年份) S01, 剧名2 (年份) S01, 剧名3 (年份) S01` (太长，超过30字符)
+- `电影1 (年份), 电影2 (年份), 电影3 (年份)` (太长，列出所有名称)
+
+**✅ 正确示例：**
+- `电视剧合集` (简洁描述性名称)
+- `经典剧集` (按特征分类)
+- `2020年代剧集` (按年代分类)
+
+**一致性保证机制：**
+1. **长度控制**：总长度严格不超过30个字符
+2. **格式统一**：严格按照模板格式
+3. **避免特殊字符**：不使用 / \\ : * ? " < > |
+4. **简洁原则**：混合内容必须使用描述性名称
+
+**分析步骤：**
+1. 统计文件中的不同IP数量
+2. **关键判断**：
+   - 如果是单一IP：使用对应的电影/电视剧规则
+   - **如果是多个不同IP：必须使用混合内容的描述性名称规则，绝对不能列出所有作品名称**
+3. 检查名称长度是否在30字符以内
+4. 确保格式符合规范
+
+**🚨 特别强调（混合内容处理）：**
+- 当文件夹包含2个或以上不同IP的内容时，必须使用简洁的描述性名称
+- 绝对不能使用"作品1, 作品2, 作品3"的格式
+- 必须使用"电视剧合集"、"剧集收藏"、"经典剧集"等描述性名称
+- 不要返回数组或多个建议，只返回一个最佳的描述性名称
+
+**输出要求：**
+只返回一个JSON对象，包含最佳建议：
+{
+    "suggested_name": "建议的文件夹名称（30字符以内）",
+    "media_type": "movie/tv/mixed",
+    "title_source": "中文官方译名/中文通用译名/描述性名称",
+    "year_range": "年份或年份范围",
+    "content_count": "作品数量统计",
+    "reasoning": "命名理由（说明为什么选择这个名称，字符数统计）"
+}
+
+文件列表：
+"""
 
         try:
             max_retries = AI_MAX_RETRIES
@@ -6691,7 +6867,7 @@ def suggest_folder_name():
                     check_task_cancelled()
 
                     # 使用统一的AI API调用函数
-                    ai_content = call_gemini_ai_api(full_prompt, GROUPING_MODEL)
+                    ai_content = call_ai_api(full_prompt, GROUPING_MODEL)
 
                     if not ai_content:
                         logging.warning(f"AI API调用返回空结果 (尝试 {attempt + 1}/{max_retries})")
@@ -6811,14 +6987,14 @@ def organize_files_by_groups():
         # 调用重构后的分组处理函数
         logging.info(f"🎯 开始调用智能分组处理函数，文件数量: {len(video_files)}")
         logging.info(f"🔧 使用AI模型: {GROUPING_MODEL}")
-        logging.info(f"🌐 API地址: {GEMINI_API_URL}")
+        logging.info(f"🌐 API地址: {AI_API_URL}")
 
         movie_info = process_files_for_grouping(video_files, f"文件夹{folder_id}")
 
         if not movie_info:
             logging.warning("⚠️ 智能分组未生成任何有效分组，尝试重试机制")
-            logging.info(f"🔍 诊断信息 - API密钥状态: {'已配置' if GEMINI_API_KEY else '未配置'}")
-            logging.info(f"🔍 诊断信息 - API地址: {GEMINI_API_URL}")
+            logging.info(f"🔍 诊断信息 - API密钥状态: {'已配置' if AI_API_KEY else '未配置'}")
+            logging.info(f"🔍 诊断信息 - API地址: {AI_API_URL}")
             logging.info(f"🔍 诊断信息 - 分组模型: {GROUPING_MODEL}")
 
             # 如果第一次失败，尝试重试

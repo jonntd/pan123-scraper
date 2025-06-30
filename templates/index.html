@@ -4105,14 +4105,14 @@
                         <small class="form-text text-muted">The Movie Database API密钥，用于获取电影和电视剧信息</small>
                     </div>
                     <div class="mb-3">
-                        <label for="geminiApiKeyInput" class="form-label">Gemini API Key (GEMINI_API_KEY):</label>
-                        <input type="text" id="geminiApiKeyInput" name="GEMINI_API_KEY" class="form-control">
-                        <small class="form-text text-muted">Gemini AI模型的API密钥，用于智能文件分析和重命名</small>
+                        <label for="aiApiKeyInput" class="form-label">AI API Key (AI_API_KEY):</label>
+                        <input type="text" id="aiApiKeyInput" name="AI_API_KEY" class="form-control">
+                        <small class="form-text text-muted">AI模型的API密钥，支持OpenAI兼容接口（如Gemini Balance等）</small>
                     </div>
                     <div class="mb-3">
-                        <label for="geminiApiUrlInput" class="form-label">Gemini API URL (GEMINI_API_URL):</label>
-                        <input type="text" id="geminiApiUrlInput" name="GEMINI_API_URL" class="form-control">
-                        <small class="form-text text-muted">Gemini API的服务地址，支持自定义代理或本地部署</small>
+                        <label for="aiApiUrlInput" class="form-label">AI API URL (AI_API_URL):</label>
+                        <input type="text" id="aiApiUrlInput" name="AI_API_URL" class="form-control">
+                        <small class="form-text text-muted">AI API的服务地址，支持OpenAI兼容接口的服务</small>
                     </div>
 
                     <hr class="my-4">
@@ -4121,7 +4121,7 @@
                     <div class="mb-3">
                         <label for="modelInput" class="form-label">模型 (MODEL):</label>
                         <input type="text" id="modelInput" name="MODEL" class="form-control">
-                        <small class="form-text text-muted">用于文件信息提取的AI模型名称，如：gemini-2.5-flash-lite-preview-06-17-search</small>
+                        <small class="form-text text-muted">用于文件信息提取的AI模型名称，如：gpt-3.5-turbo、gpt-4等</small>
                     </div>
                     <div class="mb-3">
                         <label for="groupingModelInput" class="form-label">智能分组模型 (GROUPING_MODEL):</label>
@@ -4131,7 +4131,7 @@
                                 <i class="fas fa-stethoscope"></i> 测试AI
                             </button>
                         </div>
-                        <small class="form-text text-muted">专门用于智能文件分组的AI模型，如：gemini-2.5-flash-lite-preview-06-17</small>
+                        <small class="form-text text-muted">专门用于智能文件分组的AI模型，如：gpt-3.5-turbo、gpt-4等</small>
                         <div id="aiTestResult" class="mt-2" style="display: none;"></div>
                     </div>
                     <div class="mb-3">

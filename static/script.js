@@ -227,8 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentStorageType = document.getElementById('currentStorageType');
 
     const tmdbApiKeyInput = document.getElementById('tmdbApiKeyInput');
-    const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
-    const geminiApiUrlInput = document.getElementById('geminiApiUrlInput');
+    const aiApiKeyInput = document.getElementById('aiApiKeyInput');
+    const aiApiUrlInput = document.getElementById('aiApiUrlInput');
     const modelInput = document.getElementById('modelInput');
     const groupingModelInput = document.getElementById('groupingModelInput');
     const languageInput = document.getElementById('languageInput');
@@ -986,8 +986,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 clientSecretInput.value = config.CLIENT_SECRET;
 
                 if (tmdbApiKeyInput) tmdbApiKeyInput.value = config.TMDB_API_KEY || '';
-                if (geminiApiKeyInput) geminiApiKeyInput.value = config.GEMINI_API_KEY === '********' ? '' : config.GEMINI_API_KEY || '';
-                if (geminiApiUrlInput) geminiApiUrlInput.value = config.GEMINI_API_URL || '';
+                if (aiApiKeyInput) aiApiKeyInput.value = config.AI_API_KEY === '********' ? '' : config.AI_API_KEY || '';
+                if (aiApiUrlInput) aiApiUrlInput.value = config.AI_API_URL || '';
                 if (modelInput) modelInput.value = config.MODEL || '';
                 if (groupingModelInput) groupingModelInput.value = config.GROUPING_MODEL || '';
                 if (languageInput) languageInput.value = config.LANGUAGE || '';
@@ -1031,8 +1031,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 添加可选的配置项
         if (tmdbApiKeyInput && tmdbApiKeyInput.value) configData.TMDB_API_KEY = tmdbApiKeyInput.value;
-        if (geminiApiKeyInput && geminiApiKeyInput.value) configData.GEMINI_API_KEY = geminiApiKeyInput.value;
-        if (geminiApiUrlInput && geminiApiUrlInput.value) configData.GEMINI_API_URL = geminiApiUrlInput.value;
+        if (aiApiKeyInput && aiApiKeyInput.value) configData.AI_API_KEY = aiApiKeyInput.value;
+        if (aiApiUrlInput && aiApiUrlInput.value) configData.AI_API_URL = aiApiUrlInput.value;
         if (modelInput && modelInput.value) configData.MODEL = modelInput.value;
         if (groupingModelInput && groupingModelInput.value) configData.GROUPING_MODEL = groupingModelInput.value;
         if (languageInput && languageInput.value) configData.LANGUAGE = languageInput.value;
@@ -3098,7 +3098,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData();
             formData.append('rename_data', JSON.stringify([{
                 fileId: currentOperatingFolderId,
-                newName: newName
+                new_name: newName,
+                type: 'folder'
             }]));
 
             const response = await fetch('/rename_files', {
@@ -3973,8 +3974,8 @@ async function testAIConnection() {
                     <div class="mt-2">
                         <strong>可能的解决方案:</strong>
                         <ul>
-                            <li>检查GEMINI_API_KEY是否正确配置</li>
-                            <li>检查GEMINI_API_URL是否可访问</li>
+                            <li>检查AI_API_KEY是否正确配置</li>
+                            <li>检查AI_API_URL是否可访问</li>
                             <li>检查GROUPING_MODEL模型名称是否正确</li>
                             <li>检查网络连接是否正常</li>
                         </ul>
