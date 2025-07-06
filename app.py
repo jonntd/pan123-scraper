@@ -745,6 +745,13 @@ def clear_operation_related_caches(folder_id=None, operation_type="unknown"):
             cleared_count += old_size
             logging.info(f"🧹 清理分组缓存: {old_size} 项")
 
+        if operation_type in ["file_deletion", "major_change"]:
+            # 文件删除操作需要清理文件夹内容缓存
+            old_size = folder_content_cache.size()
+            folder_content_cache.clear()
+            cleared_count += old_size
+            logging.info(f"🧹 清理文件夹内容缓存: {old_size} 项")
+
         if folder_id:
             # 清理特定文件夹的内容缓存
             folder_content_cache.delete(f"folder_{folder_id}")
@@ -2032,7 +2039,7 @@ def load_application_config():
         app_config: 主配置字典
         QPS_LIMIT, CHUNK_SIZE, MAX_WORKERS: 性能配置
         CLIENT_ID, CLIENT_SECRET: 123云盘API配置
-        TMDB_API_KEY, GEMINI_API_KEY, GEMINI_API_URL: 第三方API配置
+        TMDB_API_KEY, AI_API_KEY, AI_API_URL: 第三方API配置
         MODEL, GROUPING_MODEL, LANGUAGE: AI和本地化配置
     """
     global app_config, QPS_LIMIT, CHUNK_SIZE, MAX_WORKERS, CLIENT_ID, CLIENT_SECRET
@@ -2061,9 +2068,8 @@ def load_application_config():
     CLIENT_ID = app_config["CLIENT_ID"]
     CLIENT_SECRET = app_config["CLIENT_SECRET"]
     TMDB_API_KEY = app_config.get("TMDB_API_KEY", "")
-    # 兼容旧配置：如果新配置不存在，使用旧配置
-    AI_API_KEY = app_config.get("AI_API_KEY", "") or app_config.get("GEMINI_API_KEY", "")
-    AI_API_URL = app_config.get("AI_API_URL", "") or app_config.get("GEMINI_API_URL", "")
+    AI_API_KEY = app_config.get("AI_API_KEY", "")
+    AI_API_URL = app_config.get("AI_API_URL", "")
     MODEL = app_config.get("MODEL", "gpt-3.5-turbo")
     GROUPING_MODEL = app_config.get("GROUPING_MODEL", "gpt-3.5-turbo")
     LANGUAGE = app_config.get("LANGUAGE", "zh-CN")
@@ -5620,16 +5626,16 @@ def refresh_token():
 def test_ai_api():
     """测试AI API连接"""
     try:
-        # 获取当前配置（支持新旧配置字段）
-        api_url = app_config.get("AI_API_URL", "") or app_config.get("GEMINI_API_URL", "")
-        api_key = app_config.get("AI_API_KEY", "") or app_config.get("GEMINI_API_KEY", "")
+        # 获取当前配置
+        api_url = app_config.get("AI_API_URL", "")
+        api_key = app_config.get("AI_API_KEY", "")
         grouping_model = app_config.get("GROUPING_MODEL", "")
 
         # 检查基本配置
         if not api_url:
             return jsonify({
                 'success': False,
-                'error': 'GEMINI_API_URL 未配置',
+                'error': 'AI_API_URL 未配置',
                 'details': {
                     'api_url': api_url,
                     'model': grouping_model,
@@ -5640,7 +5646,7 @@ def test_ai_api():
         if not api_key:
             return jsonify({
                 'success': False,
-                'error': 'GEMINI_API_KEY 未配置',
+                'error': 'AI_API_KEY 未配置',
                 'details': {
                     'api_url': api_url,
                     'model': grouping_model,
@@ -5748,19 +5754,19 @@ def test_ai_api():
             'success': False,
             'error': 'API请求超时，请检查网络连接和服务器状态',
             'details': {
-                'api_url': app_config.get("GEMINI_API_URL", ""),
+                'api_url': app_config.get("AI_API_URL", ""),
                 'model': app_config.get("GROUPING_MODEL", ""),
-                'api_key_status': '已设置' if app_config.get("GEMINI_API_KEY") else '未设置'
+                'api_key_status': '已设置' if app_config.get("AI_API_KEY") else '未设置'
             }
         })
     except requests.exceptions.ConnectionError:
         return jsonify({
             'success': False,
-            'error': 'API连接失败，请检查GEMINI_API_URL是否正确',
+            'error': 'API连接失败，请检查AI_API_URL是否正确',
             'details': {
-                'api_url': app_config.get("AI_API_URL", "") or app_config.get("GEMINI_API_URL", ""),
+                'api_url': app_config.get("AI_API_URL", ""),
                 'model': app_config.get("GROUPING_MODEL", ""),
-                'api_key_status': '已设置' if (app_config.get("AI_API_KEY") or app_config.get("GEMINI_API_KEY")) else '未设置'
+                'api_key_status': '已设置' if app_config.get("AI_API_KEY") else '未设置'
             }
         })
     except Exception as e:
@@ -5769,9 +5775,9 @@ def test_ai_api():
             'success': False,
             'error': f'测试过程中发生错误: {str(e)}',
             'details': {
-                'api_url': app_config.get("AI_API_URL", "") or app_config.get("GEMINI_API_URL", ""),
+                'api_url': app_config.get("AI_API_URL", ""),
                 'model': app_config.get("GROUPING_MODEL", ""),
-                'api_key_status': '已设置' if (app_config.get("AI_API_KEY") or app_config.get("GEMINI_API_KEY")) else '未设置'
+                'api_key_status': '已设置' if app_config.get("AI_API_KEY") else '未设置'
             }
         })
 
@@ -5800,10 +5806,12 @@ def save_configuration():
 
         if "TMDB_API_KEY" in new_config_data:
             app_config["TMDB_API_KEY"] = new_config_data["TMDB_API_KEY"]
-        if "GEMINI_API_KEY" in new_config_data:
-            app_config["GEMINI_API_KEY"] = new_config_data["GEMINI_API_KEY"]
-        if "GEMINI_API_URL" in new_config_data:
-            app_config["GEMINI_API_URL"] = new_config_data["GEMINI_API_URL"]
+
+        # 处理AI API配置
+        if "AI_API_KEY" in new_config_data:
+            app_config["AI_API_KEY"] = new_config_data["AI_API_KEY"]
+        if "AI_API_URL" in new_config_data:
+            app_config["AI_API_URL"] = new_config_data["AI_API_URL"]
         if "MODEL" in new_config_data:
             app_config["MODEL"] = new_config_data["MODEL"]
         if "GROUPING_MODEL" in new_config_data:
@@ -7464,6 +7472,14 @@ def delete_files():
                 failed_deletes += batch_size
 
         logging.info(f"批量删除完成: 成功 {successful_deletes} 个，失败 {failed_deletes} 个")
+
+        # 如果有文件删除成功，清理相关缓存
+        if successful_deletes > 0:
+            try:
+                clear_operation_related_caches(operation_type="file_deletion")
+                logging.info("🧹 删除文件后已清理相关缓存")
+            except Exception as cache_error:
+                logging.warning(f"⚠️ 清理缓存时发生错误: {cache_error}")
 
         if failed_deletes == 0:
             return jsonify({
